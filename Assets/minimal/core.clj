@@ -7,6 +7,8 @@
 (require '[arcadia.core :refer :all])
 #_
 (require '[minimal.core :refer :all])
+#_
+(require 'minimal.core :reload) ; or :reload-all to reload dependencies too
 
 (defn first-callback [o]
   (arcadia.core/log "Hello, Arcadia"))

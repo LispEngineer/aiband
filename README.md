@@ -61,7 +61,9 @@ REPL: `user=> (objects-named "object-1")` ->
 
 3. Remove our old Hello World hook to `first-callback` in the Unity GUI by clicking the gear icon next to `Update Hook (Script)` when `object-1` is showing in the `Inspector` window. Choose `Remove Component`.
 
-4. (TODO... How do we get the REPL to reload our core.clj?)
+4. Tell Arcadia that our `.clj` file has changed by using this command in the REPL: 
+`(require 'minimal.core :reload)`. The Arcadia team will probably have a file watcher
+in the future that may obviate this step.
 
 5. In the REPL, add our new hook: `(hook+ (first (objects-named "object-1")) :update #'minimal.core/move-when-arrow-pressed)`
    * Confirm this by checking the `Inspector` for `object-1` in Unity
