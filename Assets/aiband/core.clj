@@ -35,11 +35,6 @@
     (when new-game (reset! game-state new-game))
     retval))
 
-(defn create-game
-  "Creates a new game object with a player."
-  []
-  {:player (create-player)})
-
 (defn create-level
   "Creates a new random level"
   []
@@ -49,6 +44,12 @@
              [:wall :floor :floor :wall  :rock]
              [:rock :wall  :floor :floor :wall]
              [:rock :wall  :wall  :wall  :rock]]})
+
+(defn create-game
+  "Creates a new game object with a player."
+  []
+  {:player (create-player)
+   :level (create-level)})
 
 (def game-state
   "The current full state of the Aiband game right now."

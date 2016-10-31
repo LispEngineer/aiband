@@ -5,14 +5,15 @@
 
 
 ;; Set up our REPL
-#_(require '[arcadia.core :refer :all])
-#_(require '[minimal.core :refer :all :reload true])
+#_   (require '[arcadia.core :refer :all])
+#_   (require '[minimal.core :refer :all :reload true])
+#_   (in-ns 'minimal.core)
 
 (defn first-callback [o]
   (arcadia.core/log "Hello, Arcadia"))
 
 ;; Hook our first callback
-#_(hook+ (first (objects-named "object-1")) :update #'minimal.core/first-callback)
+#_   (hook+ (first (objects-named "object-1")) :update #'minimal.core/first-callback)
 
 ;; Move our object up a little bit when the Up key is held down.
 ;; See: https://docs.unity3d.com/ScriptReference/Input.GetKey.html
@@ -21,7 +22,7 @@
     (arcadia.core/log "Up pushed")))
 
 ;; Hook our move callback
-#_(hook+ (first (objects-named "object-1")) :update #'minimal.core/move-when-up-pressed)
+#_   (hook+ (first (objects-named "object-1")) :update #'minimal.core/move-when-up-pressed)
 
 ;; Log a message when arrow keys are first pushed
 (defn move-when-arrow-pressed [o]
@@ -45,7 +46,7 @@
         
 
 ;; Hook our new move callback
-#_(hook+ (first (objects-named "object-1")) :update #'minimal.core/move-when-arrow-pressed)
+#_   (hook+ (first (objects-named "object-1")) :update #'minimal.core/move-when-arrow-pressed)
 
 (defn create-thing 
   "name - a string. location - a Vector3.
@@ -62,8 +63,22 @@
   "Game startup/setup routine"
   [o]
   (arcadia.core/log "Game startup")
-  (create-thing "TileFloor" #unity/Vector3 [1.0 2.0 0.0])
-  (create-thing "TileWall" #unity/Vector3 [4.0 0.0 0.0])
-  )
+  (let [terrain (:terrain (:level @ai/game-state))]
+    (arcadia.core/log "Terrain" terrain)
+    (map-indexed
+      (fn [y row]
+        (map-indexed
+          (fn [x t]
+            (create-thing (cond
+                            (= t :rock) "TileRock"
+                            (= t :wall) "TileWall"
+                            (= t :floor) "TileFloor")
+                          (arcadia.linear/v3 x y 0.0))
+            (arcadia.core/log "Creating" x y t))
+                          ;#unity/Vector3 [x y 0.0]))
+          row))
+      terrain)))
+  ;(create-thing "TileFloor" #unity/Vector3 [1.0 2.0 0.0])
+  ;(create-thing "TileWall" #unity/Vector3 [4.0 0.0 0.0])
 
-#_(hook+ (first (objects-named "Startup")) :awake #'minimal.core/game-startup)
+#_   (hook+ (first (objects-named "Startup")) :awake #'minimal.core/game-startup)
