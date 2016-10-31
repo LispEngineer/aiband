@@ -11,6 +11,8 @@ symbolics at lisp.engineer
 4. `cd Assets/Arcadia/Infrastructure` and run the `./repl` program there, then
    * `(require '[arcadia.core :refer :all])`
    * Leave the REPL open for later
+   * Alternatively, `rlwrap -r ruby Arcadia/Editor/repl-client.rb` seems to work better
+     for the REPL but apparently is deprecated (get rlwrap from homebrew)
 5. Drag a (random, small) image into your Unity `Assets` pane/window
 6. Drag that image from the `Assets` window into the `Scene` pane/window, on top of the camera icon.
    * Confirm that the `Hierarchy` pane shows your image (it will be a `Sprite` now)

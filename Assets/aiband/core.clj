@@ -1,11 +1,7 @@
 (ns aiband.core)
 
 ;; Forward definitions
-(declare create-game)
-
-(def game-state
-  "The current full state of the Aiband game right now."
-  (atom (create-game)))
+(declare create-game game-state)
 
 (defn create-player
   "Creates an empty player object."
@@ -40,3 +36,8 @@
   "Creates a new game object with a player."
   []
   {:player (create-player)})
+
+(def game-state
+  "The current full state of the Aiband game right now."
+  (atom (create-game)))
+
