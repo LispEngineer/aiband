@@ -1,5 +1,8 @@
 (ns aiband.core)
 
+;; Load our module into the REPL
+#_(require '[aiband.core :refer :all :reload true])
+
 ;; Forward definitions
 (declare create-game game-state)
 
@@ -36,6 +39,16 @@
   "Creates a new game object with a player."
   []
   {:player (create-player)})
+
+(defn create-level
+  "Creates a new random level"
+  []
+  {:width 5 :height 5
+   :terrain [[:rock :wall  :wall  :wall  :rock]
+             [:rock :wall  :floor :wall  :rock]
+             [:wall :floor :floor :wall  :rock]
+             [:rock :wall  :floor :floor :wall]
+             [:rock :wall  :wall  :wall  :rock]]})
 
 (def game-state
   "The current full state of the Aiband game right now."

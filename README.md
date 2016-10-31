@@ -103,3 +103,100 @@ TODO: Use the input to modify the location of the object.
 # Programmatically Controlling Game Objects
 
 TODO: Generate and remove game objects, and change the sprite they display, etc.
+
+
+# Miscellaneous Notes
+
+To see all hookable things in Arcadia/Unity:
+
+```clojure
+user=> (use 'arcadia.core)
+nil
+
+user=> hook-types
+{
+ :awake AwakeHook
+ :fixed-update FixedUpdateHook
+ :late-update LateUpdateHook
+ :on-animator-ik OnAnimatorIKHook
+ :on-animator-move OnAnimatorMoveHook
+ :on-application-focus OnApplicationFocusHook
+ :on-application-pause OnApplicationPauseHook
+ :on-application-quit OnApplicationQuitHook
+ :on-audio-filter-read OnAudioFilterReadHook
+ :on-became-invisible OnBecameInvisibleHook
+ :on-became-visible OnBecameVisibleHook
+ :on-begin-drag OnBeginDragHook
+ :on-cancel OnCancelHook
+ :on-collision-enter OnCollisionEnterHook
+ :on-collision-enter2d OnCollisionEnter2DHook
+ :on-collision-exit OnCollisionExitHook
+ :on-collision-exit2d OnCollisionExit2DHook
+ :on-collision-stay OnCollisionStayHook
+ :on-collision-stay2d OnCollisionStay2DHook
+ :on-connected-to-server OnConnectedToServerHook
+ :on-controller-collider-hit OnControllerColliderHitHook
+ :on-deselect OnDeselectHook
+ :on-destroy OnDestroyHook
+ :on-disable OnDisableHook
+ :on-disconnected-from-server OnDisconnectedFromServerHook
+ :on-drag OnDragHook
+ :on-draw-gizmos OnDrawGizmosHook
+ :on-draw-gizmos-selected OnDrawGizmosSelectedHook
+ :on-drop OnDropHook
+ :on-enable OnEnableHook
+ :on-end-drag OnEndDragHook
+ :on-failed-to-connect OnFailedToConnectHook
+ :on-failed-to-connect-to-master-server OnFailedToConnectToMasterServerHook
+ :on-gui OnGUIHook
+ :on-initialize-potential-drag OnInitializePotentialDragHook
+ :on-joint-break OnJointBreakHook
+ :on-level-was-loaded OnLevelWasLoadedHook
+ :on-master-server-event OnMasterServerEventHook
+ :on-mouse-down OnMouseDownHook
+ :on-mouse-drag OnMouseDragHook
+ :on-mouse-enter OnMouseEnterHook
+ :on-mouse-exit OnMouseExitHook
+ :on-mouse-over OnMouseOverHook
+ :on-mouse-up OnMouseUpHook
+ :on-mouse-up-as-button OnMouseUpAsButtonHook
+ :on-move OnMoveHook
+ :on-network-instantiate OnNetworkInstantiateHook
+ :on-particle-collision OnParticleCollisionHook
+ :on-player-connected OnPlayerConnectedHook
+ :on-player-disconnected OnPlayerDisconnectedHook
+ :on-pointer-click OnPointerClickHook
+ :on-pointer-down OnPointerDownHook
+ :on-pointer-enter OnPointerEnterHook
+ :on-pointer-exit OnPointerExitHook
+ :on-pointer-up OnPointerUpHook
+ :on-post-render OnPostRenderHook
+ :on-pre-cull OnPreCullHook
+ :on-pre-render OnPreRenderHook
+ :on-render-image OnRenderImageHook
+ :on-render-object OnRenderObjectHook
+ :on-scroll OnScrollHook
+ :on-select OnSelectHook
+ :on-serialize-network-view OnSerializeNetworkViewHook
+ :on-server-initialized OnServerInitializedHook
+ :on-submit OnSubmitHook
+ :on-trigger-enter OnTriggerEnterHook
+ :on-trigger-enter2d OnTriggerEnter2DHook
+ :on-trigger-exit OnTriggerExitHook
+ :on-trigger-exit2d OnTriggerExit2DHook
+ :on-trigger-stay OnTriggerStayHook
+ :on-trigger-stay2d OnTriggerStay2DHook
+ :on-update-selected OnUpdateSelectedHook
+ :on-validate OnValidateHook
+ :on-will-render-object OnWillRenderObjectHook
+ :reset ResetHook
+ :start StartHook
+ :update UpdateHook
+}
+```
+
+# Credits
+
+* [`dg_features32.png`](http://pousse.rapiere.free.fr/tome/tiles/AngbandTk/tome-angbandtkdungeontiles.htm)
+
+
