@@ -13,7 +13,7 @@
   (arcadia.core/log "Hello, Arcadia"))
 
 ;; Hook our first callback
-#_   (hook+ (first (objects-named "object-1")) :update #'minimal.core/first-callback)
+#_   (hook+ (first (objects-named "Startup")) :update #'minimal.core/first-callback)
 
 ;; Move our object up a little bit when the Up key is held down.
 ;; See: https://docs.unity3d.com/ScriptReference/Input.GetKey.html
@@ -22,7 +22,7 @@
     (arcadia.core/log "Up pushed")))
 
 ;; Hook our move callback
-#_   (hook+ (first (objects-named "object-1")) :update #'minimal.core/move-when-up-pressed)
+#_   (hook+ (first (objects-named "Startup")) :update #'minimal.core/move-when-up-pressed)
 
 ;; Log a message when arrow keys are first pushed
 (defn move-when-arrow-pressed [o]
@@ -46,7 +46,7 @@
         
 
 ;; Hook our new move callback
-#_   (hook+ (first (objects-named "object-1")) :update #'minimal.core/move-when-arrow-pressed)
+#_   (hook+ (first (objects-named "Startup")) :update #'minimal.core/move-when-arrow-pressed)
 
 (defn create-thing 
   "name - a string. location - a Vector3.
@@ -65,20 +65,14 @@
   (arcadia.core/log "Game startup")
   (let [terrain (:terrain (:level @ai/game-state))]
     (arcadia.core/log "Terrain" terrain)
-    (map-indexed
-      (fn [y row]
-        (map-indexed
-          (fn [x t]
-            (create-thing (cond
-                            (= t :rock) "TileRock"
-                            (= t :wall) "TileWall"
-                            (= t :floor) "TileFloor")
-                          (arcadia.linear/v3 x y 0.0))
-            (arcadia.core/log "Creating" x y t))
-                          ;#unity/Vector3 [x y 0.0]))
-          row))
-      terrain)))
-  ;(create-thing "TileFloor" #unity/Vector3 [1.0 2.0 0.0])
-  ;(create-thing "TileWall" #unity/Vector3 [4.0 0.0 0.0])
+    ;; Iterate over the 2D vector including indices
+    (doseq [[y row] (map list (range) terrain)]
+      (doseq [[x t] (map list (range) row)]
+        (create-thing (cond
+                        (= t :wall) "TileWall"
+                        (= t :floor) "TileFloor"
+                        :else "TileRock")
+                      (arcadia.linear/v3 x y 0.0))
+        (arcadia.core/log "Creating" x y t)))))
 
 #_   (hook+ (first (objects-named "Startup")) :awake #'minimal.core/game-startup)
