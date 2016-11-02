@@ -1,5 +1,5 @@
 (ns minimal.core
-  (:import [UnityEngine Input KeyCode Camera Physics Time Camera Resources Vector3 Quaternion])
+  (:import [UnityEngine Input KeyCode Camera Physics Time Camera Resources Vector3 Quaternion Screen])
   (:require [aiband.core :as ai])
   (:use arcadia.core arcadia.linear #_aiband.core))
 
@@ -42,6 +42,30 @@
     (= t :floor) "TileFloor"
     :else        "TileRock"))
 
+(def gon-main-camera "Main camera object name" "Main Camera")
+(def tile-size "The (square) size of each dungeon tile" 32)
+
+;; We use an orthographic size of half the screen height
+;; divided by the size of our tiles.
+;; https://blogs.unity3d.com/2015/06/19/pixel-perfect-2d/
+(defn camera-setup
+  "Sets up the camera so that we have a 1:1 ratio of pixels."
+  []
+  (arcadia.core/log "Setting up Main Camera")
+  (let [camera      (object-named gon-main-camera) ; Later, get the Camera component of the Main Camera
+        tile-height (int (/ Screen/height tile-size))
+        tile-width  (int (/ Screen/width tile-size))
+        ortho-size  (float (/ tile-height 2))
+        x-pos       (double (/ tile-width 2))]
+    (arcadia.core/log "Camera:" camera)
+    (arcadia.core/log "Screen:" Screen/width Screen/height)
+    (arcadia.core/log "tile-height:" tile-height "tile-width:" tile-width)
+    (arcadia.core/log "orthographicSize:" ortho-size "x-pos:" x-pos)
+    (set! (. (cmpt camera Camera) orthographicSize) ortho-size)
+    ;; TODO: Get the current transform.position and just change the x/y, leave the z
+    (set! (. (. camera transform) position) (arcadia.linear/v3 x-pos ortho-size -10.0))) ; FIXME: Why Z -10?
+  (arcadia.core/log "Main Camera setup complete"))
+
 ;; Set up our game. Call this once when the game is run.
 ;; We assume it's set up as a listener for Awake message on a Startup object
 ;; in the scene which doesn't otherwise do anything.
@@ -49,10 +73,12 @@
   "Game startup/setup routine"
   [o]
   (arcadia.core/log "Game startup")
+  (camera-setup)
   (let [terrain (:terrain (:level @ai/game-state))
         tgo (GameObject. "Terrain")  ; A Unity GameObject that will hold our other Terrain GOs
         tt  (. tgo transform)] ; The transform of the above
     (arcadia.core/log "Terrain" terrain)
+    (arcadia.core/log "Screen" Screen/width Screen/height)
     ;; Iterate over the 2D vector including indices
     (doseq [[y row] (map list (range) terrain)]
       (doseq [[x t] (map list (range) row)]
