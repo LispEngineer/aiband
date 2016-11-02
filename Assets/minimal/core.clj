@@ -55,8 +55,10 @@
   (let [camera      (object-named gon-main-camera) ; Later, get the Camera component of the Main Camera
         tile-height (int (/ Screen/height tile-size))
         tile-width  (int (/ Screen/width tile-size))
-        ortho-size  (float (/ tile-height 2))
-        x-pos       (double (/ tile-width 2))]
+        ;; Ortho-size must be an exact fraction to make pixel perfection.
+        ;; This may mean we don't use all the possible locations due to fractions of tile size.
+        ortho-size  (float (/ Screen/height 2 tile-size))
+        x-pos       (double (/ Screen/width 2 tile-size))]
     (arcadia.core/log "Camera:" camera)
     (arcadia.core/log "Screen:" Screen/width Screen/height)
     (arcadia.core/log "tile-height:" tile-height "tile-width:" tile-width)
