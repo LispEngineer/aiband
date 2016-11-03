@@ -1,5 +1,5 @@
 (ns minimal.core
-  (:import [UnityEngine Input KeyCode Camera Physics Time Camera Resources Vector3 Quaternion Screen])
+  (:import [UnityEngine Input KeyCode Camera Physics Time UI.Text Camera Resources Vector3 Quaternion Screen])
   (:require [aiband.core :as ai])
   (:use arcadia.core arcadia.linear #_aiband.core))
 
@@ -23,6 +23,29 @@
     (when (not (and (zero? dx) (zero? dy)))
       (arcadia.core/log "Total move delta:" dx dy)
       (arcadia.core/log (ai/update-game! ai/player-move dx dy)))))
+
+;; Updates the GUI with the latest HP, etc.
+;; Call this in a LateUpdate.
+;; TODO: Only do anything in here if the state is changed from the last
+;; time we did something in here.
+(defn update-gui
+  "Updates the Unity GUI items with latest data."
+  [o]
+  (let [go-hp      (object-named "HPData")
+        go-hp-text (cmpt go-hp Text)
+        go-x       (object-named "XData")
+        go-x-text  (cmpt go-x Text)
+        go-y       (object-named "YData")
+        go-y-text  (cmpt go-y Text)
+        state      @ai/game-state
+        player     (:player state)]
+    ; (arcadia.core/log "update-gui:" go-x-text state)
+    (set! (. go-x-text text) (str (:x player)))
+    (set! (. go-y-text text) (str (:y player)))
+    (set! (. go-hp-text text) (str (:hp player) "/" (:hp-max player)))))
+    
+
+
         
 
 (defn create-thing
@@ -109,4 +132,5 @@
   ;; Per Ramsey Nasser, "we do funky things with awake that might get in the way of user code"
   (hook+ (first (objects-named "Startup")) :start #'minimal.core/game-startup)
   (hook+ (first (objects-named "Startup")) :update #'minimal.core/move-when-arrow-pressed)
+  (hook+ (first (objects-named "Startup")) :late-update #'minimal.core/update-gui)
   )
