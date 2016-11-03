@@ -62,6 +62,11 @@ Camera is located at (8, 4.5) and shows a view 16x9.
 
 Bottom left part of screen is game coordinate (0,0) and top right is (16,9).
 
+## Updating Unity Transform
+
+You must set the transform.position to a whole new Vec3 `(v3 x y z)`
+rather than just setting individual fields of the existing one.
+
 ## Arcadia/Unity
 
 To see all hookable things in Arcadia/Unity:

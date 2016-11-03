@@ -16,8 +16,10 @@
     (arcadia.core/log "Left pushed"))
   (let [dx1 (if (Input/GetKeyDown KeyCode/LeftArrow) -1 0)
         dx2 (if (Input/GetKeyDown KeyCode/RightArrow) 1 0)
-        dy1 (if (Input/GetKeyDown KeyCode/UpArrow) -1 0)
-        dy2 (if (Input/GetKeyDown KeyCode/DownArrow) 1 0)
+        ;; Coordinate origin 0,0 is at the bottom left, with +X -> right
+        ;; and +Y -> up
+        dy1 (if (Input/GetKeyDown KeyCode/UpArrow) 1 0)
+        dy2 (if (Input/GetKeyDown KeyCode/DownArrow) -1 0)
         dx (+ dx1 dx2)
         dy (+ dy1 dy2)]
     (when (not (and (zero? dx) (zero? dy)))
@@ -44,6 +46,23 @@
     (set! (. go-y-text text) (str (:y player)))
     (set! (. go-hp-text text) (str (:hp player) "/" (:hp-max player)))))
     
+
+;; Updates the player to show in the correct position.
+;; Call this in a LateUpdate.
+(defn update-player
+  "Updates the player sprite and position."
+  [go-player]
+  (let [p-t (. go-player transform)
+        p-p (. p-t position)
+        p-state (:player @ai/game-state)]
+    #_(arcadia.core/log "Updating player to coordinates" (:x p-state) (:y p-state))
+    #_(arcadia.core/log "Current position:" p-p)
+    ;; Neither of the below work; you must set the entire Vec3 in the transform
+    ; (set! (. p-p x) (float (:x p-state)))
+    ; (set! (. p-p y) (float (:y p-state)))))
+    ; (. p-p Set (float (:x p-state)) (float (:y p-state)) (. p-p z))
+    (set! (. p-t position) (v3 (:x p-state) (:y p-state) 0.0))
+    #_(arcadia.core/log "New position:" (. p-t position)) ))
 
 
         
@@ -133,4 +152,5 @@
   (hook+ (first (objects-named "Startup")) :start #'minimal.core/game-startup)
   (hook+ (first (objects-named "Startup")) :update #'minimal.core/move-when-arrow-pressed)
   (hook+ (first (objects-named "Startup")) :late-update #'minimal.core/update-gui)
+  (hook+ (object-named "Player") :late-update #'minimal.core/update-player)
   )
