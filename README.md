@@ -1,7 +1,8 @@
 # Aiband
 
 Douglas P. Fields, Jr.  
-symbolics at lisp.engineer
+symbolics at lisp.engineer  
+https://symbolics.lisp.engineer/
 
 *Artificial Intelligence (ang)band*
 
