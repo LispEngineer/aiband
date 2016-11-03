@@ -1,3 +1,8 @@
+;;;; Douglas P. Fields, Jr.
+;;;; symbolics at lisp.engineer - https://symbolics.lisp.engineer/
+;;;; Aiband - The Artificial Intelligence Roguelike
+
+
 (ns minimal.core
   (:import [UnityEngine Input KeyCode Camera Physics Time UI.Text Camera Resources Vector3 Quaternion Screen])
   (:require [aiband.core :as ai])

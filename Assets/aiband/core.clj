@@ -1,3 +1,8 @@
+;;;; Douglas P. Fields, Jr.
+;;;; symbolics at lisp.engineer - https://symbolics.lisp.engineer/
+;;;; Aiband - The Artificial Intelligence Roguelike
+
+
 (ns aiband.core)
 
 ;; Load our module into the REPL
