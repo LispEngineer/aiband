@@ -9,16 +9,20 @@
   (:use arcadia.core arcadia.linear #_aiband.core))
 
 
+
+(defn create-thing
+  "name - a string. location - a Vector3.
+   Loads a prefab from Assets/Resources and instantiates it at the specified location."
+  [name location]
+  (let [prefab (Resources/Load name)
+        thing (UnityEngine.Object/Instantiate prefab location Quaternion/identity)]
+    #_(arcadia.core/log thing)
+    thing))
+
+
+
 ;; Log a message when arrow keys are first pushed
 (defn move-when-arrow-pressed [o]
-  (when (Input/GetKeyDown KeyCode/UpArrow)
-    (arcadia.core/log "Up pushed"))
-  (when (Input/GetKeyDown KeyCode/DownArrow)
-    (arcadia.core/log "Down pushed"))
-  (when (Input/GetKeyDown KeyCode/RightArrow)
-    (arcadia.core/log "Right pushed"))
-  (when (Input/GetKeyDown KeyCode/LeftArrow)
-    (arcadia.core/log "Left pushed"))
   (let [dx1 (if (Input/GetKeyDown KeyCode/LeftArrow) -1 0)
         dx2 (if (Input/GetKeyDown KeyCode/RightArrow) 1 0)
         ;; Coordinate origin 0,0 is at the bottom left, with +X -> right
@@ -46,10 +50,13 @@
         go-y-text  (cmpt go-y Text)
         state      @ai/game-state
         player     (:player state)]
-    ; (arcadia.core/log "update-gui:" go-x-text state)
+    #_(arcadia.core/log "update-gui:" go-x-text state)
+    #_(arcadia.core/log "update-gui start")
     (set! (. go-x-text text) (str (:x player)))
     (set! (. go-y-text text) (str (:y player)))
-    (set! (. go-hp-text text) (str (:hp player) "/" (:hp-max player)))))
+    (set! (. go-hp-text text) (str (:hp player) "/" (:hp-max player))))
+    #_(arcadia.core/log "update-gui finish") )
+
     
 
 ;; Updates the player to show in the correct position.
@@ -70,16 +77,55 @@
     #_(arcadia.core/log "New position:" (. p-t position)) ))
 
 
-        
+(def item-tag "Unity tag for all item objects" "item")
 
-(defn create-thing
-  "name - a string. location - a Vector3.
-   Loads a prefab from Assets/Resources and instantiates it at the specified location."
-  [name location]
-  (let [prefab (Resources/Load name)
-        thing (UnityEngine.Object/Instantiate prefab location Quaternion/identity)]
-    #_(arcadia.core/log thing)
-    thing))
+(defn item-prefab
+  "Converts an item keyword into a Prefab Tile name"
+  [i]
+  (cond
+    (= i :ring)  "ItemRing"
+    (= i :amulet) "ItemAmulet"
+    :else        "ItemUnknown"))
+
+(defn remove-items
+  "Removes all objects with the specified tag from the scene"
+  []
+  (let [tos (objects-tagged item-tag)]
+    (doseq [o tos]
+      (arcadia.core/destroy o))))
+
+(defn add-items
+  "Adds GameObjects from Prefabs for all items in the game"
+  []
+  ;; First create a container
+  ;; Then create the items
+  (let [cgo (GameObject. "Items")  ; A Unity GameObject that will hold our other Item GOs
+        ct  (. cgo transform) ; The transform of the above
+        items (:items (:level @ai/game-state))]
+    #_(arcadia.core/log "Adding items:" items)
+    (set! (. cgo tag) item-tag)
+    (doseq [item items]
+      (let [igo (create-thing (item-prefab (:type item)) (arcadia.linear/v3 (:x item) (:y item) 0.0))]
+        ;; Do nothing
+        (. (. igo transform) SetParent ct)
+        ))
+    #_(arcadia.core/log "Item addition complete") ))
+
+
+;; Updates all items in the map.
+;; Does this by deleting all objects tagged "item"
+;; and then recreates them appropriately.
+;; This is probably not efficient and should be revisited.
+(defn update-items
+  "Updates the drawing of all items in the game."
+  [o]
+  #_(arcadia.core/log "Removing items")
+  (remove-items)
+  #_(arcadia.core/log "Adding items")
+  (add-items)
+  #_(arcadia.core/log "Item manipulation complete") )
+
+        
 
 (defn terrain-tile
   "Converts a terrain symbol into a Prefab Tile name"
@@ -130,6 +176,7 @@
     (arcadia.core/log "Screen" Screen/width Screen/height)
     ;; Iterate over the 2D vector including indices
     (doseq [[y row] (map list (range) terrain)]
+      #_(arcadia.core/log "Starting terrain row" y)
       (doseq [[x t] (map list (range) row)]
         (let [go (create-thing (terrain-tile t) (arcadia.linear/v3 x y 0.0))]
           ;; Set our name
@@ -137,7 +184,9 @@
           ;; Put it in the Terrain holder
           ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
           (. (. go transform) SetParent tt)
-          (arcadia.core/log "Created" x y t go))))))
+          (arcadia.core/log "Created" x y t go)))
+      #_(arcadia.core/log "Finished terrain row" y)))
+  (arcadia.core/log "Game startup complete"))
 
 
 ;; Arcadia REPL --------------------------------------------------------------------------
@@ -157,5 +206,6 @@
   (hook+ (first (objects-named "Startup")) :start #'minimal.core/game-startup)
   (hook+ (first (objects-named "Startup")) :update #'minimal.core/move-when-arrow-pressed)
   (hook+ (first (objects-named "Startup")) :late-update #'minimal.core/update-gui)
+  (hook+ (object-named "Startup") :late-update #'minimal.core/update-items)
   (hook+ (object-named "Player") :late-update #'minimal.core/update-player)
   )

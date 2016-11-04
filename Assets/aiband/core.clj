@@ -40,6 +40,16 @@
     (when new-game (reset! game-state new-game))
     retval))
 
+;; Not sure if the best way to represent the location of items
+;; is part of their data structure or where they are in another
+;; data structure (e.g., 2D vector of locations). For now, we will
+;; keep the items and their locations separate.
+(defn create-items
+  "Creates items for the new level"
+  []
+  [{:type :ring :x 2 :y 2} 
+   {:type :amulet :x 3 :y 3}])
+
 (defn create-level
   "Creates a new random level"
   []
@@ -48,7 +58,8 @@
              [:rock :wall  :floor :wall  :rock]
              [:wall :floor :floor :wall  :rock]
              [:rock :wall  :floor :floor :wall]
-             [:rock :wall  :wall  :wall  :rock]]})
+             [:rock :wall  :wall  :wall  :rock]]
+   :items (create-items)})
 
 (defn create-game
   "Creates a new game object with a player."
