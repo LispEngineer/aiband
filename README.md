@@ -18,6 +18,12 @@ possibly running several drones.
 * ClojureCLR 1.7.0
 
 
+# Next Steps
+
+1. Make a message box that shows shows the most recent messages.
+2. Update the state of Unity only if the game state has changed.
+
+
 # Unity Configuration
 
 ## Assets
