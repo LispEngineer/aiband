@@ -18,12 +18,12 @@
    [
     ;01234567890124
     "                                                                                                                                "
-    "                        .....................             ......................                      ......                    "
-    "  ...........           .                   .             ....                 .                     ........                   "
+    "      ....              .....................             ......................                      ......                    "
+    "  ........              .                   .             ....                 .                     ........                   "
     "  ...........           .                   .             ....                 .                     ........                   "
     "  ...........           .   ........        .             ....                 .                 ................               "
-    "  ..................................        .              .                   .                 .......................        "
-    "  ...........      .        ........        .              .                ..............       ................      .        "
+    " ...................................        .              .                   .                 .......................        "
+    " ............      .        ........        .              .                ..............       ................      .        "
     "                   .        ........        .              .                .            .         .                   .        "
     "                   .        ........        ................                .            ...........                   .        "
     "                   .        ........                .               ..............                                     .        "
@@ -140,6 +140,7 @@
   "Creates some random items in this level on floor spaces."
   ;; FIXME: Make the representation of items:
   ;; {[x y] [{item} ...] [x y] [{item} ...]}
+  ;; and of course put them in randomly
   [lvterr]
   [{:type :ring   :x 3 :y 3} 
    {:type :amulet :x 4 :y 4}])
@@ -187,26 +188,11 @@
     (when new-game (reset! game-state new-game))
     retval))
 
-;; Not sure if the best way to represent the location of items
-;; is part of their data structure or where they are in another
-;; data structure (e.g., 2D vector of locations). For now, we will
-;; keep the items and their locations separate.
-(defn create-items
-  "Creates items for the new level"
-  []
-  [{:type :ring :x 2 :y 2} 
-   {:type :amulet :x 3 :y 3}])
 
 (defn create-level
   "Creates a new random level"
   []
-  {:width 5 :height 5
-   :terrain [[:rock :wall  :wall  :wall  :rock]
-             [:rock :wall  :floor :wall  :rock]
-             [:wall :floor :floor :wall  :rock]
-             [:rock :wall  :floor :floor :wall]
-             [:rock :wall  :wall  :wall  :rock]]
-   :items (create-items)})
+  (create-level-from-string level-map-string))
 
 (defn create-game
   "Creates a new game object with a player."
