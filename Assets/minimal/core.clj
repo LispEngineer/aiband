@@ -62,11 +62,14 @@
 ;; Updates the player to show in the correct position.
 ;; Call this in a LateUpdate.
 (defn update-player
-  "Updates the player sprite and position."
+  "Updates the player sprite and position, and the camera."
   [go-player]
   (let [p-t (. go-player transform)
         p-p (. p-t position)
-        p-state (:player @ai/game-state)]
+        p-state (:player @ai/game-state)
+        mc (object-named "Main Camera")
+        mc-t (. mc transform)
+        mc-p (. mc-t position)]
     #_(arcadia.core/log "Updating player to coordinates" (:x p-state) (:y p-state))
     #_(arcadia.core/log "Current position:" p-p)
     ;; Neither of the below work; you must set the entire Vec3 in the transform
@@ -74,7 +77,11 @@
     ; (set! (. p-p y) (float (:y p-state)))))
     ; (. p-p Set (float (:x p-state)) (float (:y p-state)) (. p-p z))
     (set! (. p-t position) (v3 (:x p-state) (:y p-state) 0.0))
-    #_(arcadia.core/log "New position:" (. p-t position)) ))
+    #_(arcadia.core/log "New position:" (. p-t position)) 
+    ;; Update the camera to be in the same place as the player sprite.
+    (set! (. mc-t position) (v3 (:x p-state) (:y p-state) (. mc-p z)))
+    #_(arcadia.core/log "New camera position:" (. mc-t position))
+    ))
 
 
 (def item-tag "Unity tag for all item objects" "item")

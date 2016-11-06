@@ -62,7 +62,7 @@
     "               ....................                  ................                    .                  ...........         "
     "                             ......                           ......                     .                                      "
     "                                                                ..                       .                                      "
-    "                                                                                         .                                      "
+    "                                                                                                                                "
    ])
 
 (def neighbor-deltas
@@ -162,7 +162,7 @@
 (defn create-player
   "Creates an empty player object."
   []
-  {:x 0 :y 0 :hp 10 :hp-max 10})
+  {:x 6 :y 6 :hp 10 :hp-max 10})
 
 (defn player-move
   "Moves the player object in this game by the specified delta.
