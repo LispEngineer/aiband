@@ -42,11 +42,11 @@
 (defn update-gui
   "Updates the Unity GUI items with latest data."
   [o]
-  (let [go-hp      (object-named "HPData")
+  (let [go-hp      (object-named "HPData") ; FIXME: Magic string
         go-hp-text (cmpt go-hp Text)
-        go-x       (object-named "XData")
+        go-x       (object-named "XData")  ; FIXME: Magic string
         go-x-text  (cmpt go-x Text)
-        go-y       (object-named "YData")
+        go-y       (object-named "YData")  ; FIXME: Magic string
         go-y-text  (cmpt go-y Text)
         state      @ai/game-state
         player     (:player state)]
