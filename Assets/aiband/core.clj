@@ -167,13 +167,40 @@
 (defn player-move
   "Moves the player object in this game by the specified delta.
    Returns [new-game error] with new-game like *game* and error string.
-   new-game will be nill, and error non-nil, on error."
+   new-game will be nil, and error non-nil, on error."
   [game dx dy]
   (let [newgame
         (-> game
          (update-in [:player :x] (partial + dx))
          (update-in [:player :y] (partial + dy)))]
     [newgame ""]))
+
+
+(defn player-move-checked
+  "Moves the player object in this game by the specified delta.
+   Returns [new-game error] with new-game like *game* and error string.
+   new-game will be nil, and error non-nil, on error."
+  [game dx dy]
+  ;; TODO: Destructure the game using destructuring-let
+  (let [player (:player game)
+        level  (:level game)
+        p-x    (:x player)
+        p-y    (:y player)
+        w      (:width level)
+        h      (:height level)
+        t      (:terrain level)
+        nx     (+ p-x dx)
+        ny     (+ p-y dy)]
+    (cond 
+      ;; Figure out every way the move could/should fail
+      (or (< nx 0) (< ny 0) (>= nx w) (>= ny h)) [nil "Invalid move"]
+      (not= (get2d t nx ny) :floor) [nil "Invalid terrain"]
+      ;; Otherwise, move the player.
+      :else
+        [(-> game
+           (assoc-in ,,, [:player :x] nx)
+           (assoc-in ,,, [:player :y] ny)) ""])))
+
 
 (defn update-game!
   "Updates the global *game* by calling the specified function

@@ -33,7 +33,7 @@
         dy (+ dy1 dy2)]
     (when (not (and (zero? dx) (zero? dy)))
       (arcadia.core/log "Total move delta:" dx dy)
-      (ai/update-game! ai/player-move dx dy))))
+      (ai/update-game! ai/player-move-checked dx dy))))
 
 ;; Updates the GUI with the latest HP, etc.
 ;; Call this in a LateUpdate.
