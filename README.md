@@ -22,6 +22,7 @@ possibly running several drones.
 
 1. Make a message box that shows shows the most recent messages.
 2. Update the state of Unity only if the game state has changed.
+3. Only allow player to move to floor spaces
 
 
 # Unity Configuration
