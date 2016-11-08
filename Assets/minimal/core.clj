@@ -191,9 +191,20 @@
           ;; Put it in the Terrain holder
           ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
           (. (. go transform) SetParent tt)
-          (arcadia.core/log "Created" x y t go)))
+          #_(arcadia.core/log "Created" x y t go) ))
       #_(arcadia.core/log "Finished terrain row" y)))
   (arcadia.core/log "Game startup complete"))
+
+(defn repl-add-all-hooks
+  "Add all the hooks to all objects. Objects lose their hooks a lot."
+  []
+  ;; Hook the :start for standalone.
+  ;; Per Ramsey Nasser, "we do funky things with awake that might get in the way of user code"
+  (hook+ (object-named "Startup") :start       #'minimal.core/game-startup)
+  (hook+ (object-named "Startup") :update      #'minimal.core/move-when-arrow-pressed)
+  (hook+ (object-named "Startup") :late-update #'minimal.core/update-gui)
+  (hook+ (object-named "Startup") :late-update #'minimal.core/update-items)
+  (hook+ (object-named "Player" ) :late-update #'minimal.core/update-player))
 
 
 ;; Arcadia REPL --------------------------------------------------------------------------
@@ -203,7 +214,9 @@
   ;; Set up our REPL and hooks
   (require '[arcadia.core :refer :all])
   (require '[minimal.core :refer :all :reload true])
+  (require '[aiband.core :refer :all :reload true])
   (in-ns 'minimal.core)
+  (in-ns 'aiband.core)
 
   ;; Hook the move and awake callbacks
   ;; Awake works great for playing in the Unity Editor, but not in standalone Mac game
