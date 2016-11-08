@@ -7,9 +7,10 @@
 
 ;; Load our module into the REPL
 #_(require '[aiband.core :refer :all :reload true])
+#_(in-ns 'aiband.core)
 
 ;; Forward definitions
-(declare create-game game-state)
+(declare create-game game-state add-message-to-game)
 
 (def level-map-string
   "Fixed string with the map of a level. Dots are floor,
@@ -206,14 +207,18 @@
   "Updates the global *game* by calling the specified function
    with the current game state as the first arg with the rest of
    the args. The return value should be [new-state error]. If new-state
-   is non-nil, then we save it to *game*."
+   is non-nil, then we save it to *game*.
+   TODO: If the new-state is nil, we add the string error to the
+   messages of the (previous) game state, and update *game*."
   [func & rest]
   (println func)
   (println rest)
   (let [[new-game error :as retval]
         (apply func @game-state rest)]
-    (when new-game (reset! game-state new-game))
-    retval))
+    (if new-game 
+      (reset! game-state new-game)
+      (reset! game-state (add-message-to-game @game-state error)))
+    [@game-state error]))
 
 
 (defn create-level
@@ -221,11 +226,39 @@
   []
   (create-level-from-string level-map-string))
 
+
+
+(defn create-messages
+  "Sets up our messages list."
+  []
+  {:initial 0 :final 0 :text []})
+
+(defn add-message
+  "Adds a message to a messages list set up by create-messages.
+   Takes the old messages list and returns a new one."
+  ;; TODO: Reduce the initial so we don't have more than the
+  ;; maximum number of desired messages in our history.
+  [messages new-msg]
+  (let [{:keys [initial final text]} messages
+        new-final (+ final 1)
+        new-text (conj text new-msg)
+        new-initial initial]
+    {:initial new-initial :final new-final :text new-text}))
+
+(defn add-message-to-game
+  "Adds a message to a game object, returning a new game object
+   that is unchanged except for the messages."
+  [game new-msg]
+  (assoc game :messages
+    (add-message (:messages game) new-msg)))
+
+
 (defn create-game
   "Creates a new game object with a player."
   []
   {:player (create-player)
-   :level (create-level)})
+   :level (create-level)
+   :messages (create-messages)})
 
 (def game-state
   "The current full state of the Aiband game right now."
