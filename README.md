@@ -6,12 +6,16 @@ https://symbolics.lisp.engineer/
 https://twitter.com/LispEngineer  
 https://github.com/LispEngineer  
 
-See LICENSE.txt
+[![Creative Commons License BY-NC-SA-4.0](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)
+* Aiband is licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0)
+* Attribution name: Douglas P. Fields, Jr.
+* Attribution URL: https://symbolics.lisp.engineer/
+* See also: `LICENSE.md` or `LICENSE.txt` in this repository
 
-*Artificial Intelligence (ang)band*
+# Artificial Intelligence (ang)band
 
 A roguelike game where the player is an Artificial Intelligence
-residing in a computer, usually attached to a drone (robot) or
+residing in a core quantum computer, usually attached to a drone (robot) or
 possibly running several drones.
 
 
@@ -186,6 +190,11 @@ user=> (arcadia.internal.editor-interop/all-user-namespaces-symbols)
 
 # Credits
 
-* [`dg_features32.png`](http://pousse.rapiere.free.fr/tome/tiles/AngbandTk/tome-angbandtkdungeontiles.htm)
+* [`dg_features32.png` and other sprites](http://pousse.rapiere.free.fr/tome/tiles/AngbandTk/tome-angbandtkdungeontiles.htm)
+* [ClojureCLR](https://github.com/clojure/clojure-clr)
+* [Unity3D](https://unity3d.com/)
+* [Arcadia](https://github.com/arcadia-unity/Arcadia)
+* [Ramsey Nasser](http://nas.sr/) for creating Arcadia and help with ClojureCLR, Unity and Arcadia
+* [Joseph Parker](http://selfsamegames.com/) for help with ClojureCLR, Unity and Arcadia
 
 

@@ -1,7 +1,7 @@
 # Aiband Game Mechanics
 
-Douglas P. Fields, Jr.  
-symbolics at lisp.engineer  
+Copyright 2016 Douglas P. Fields, Jr.  
+symbolics _at_ lisp.engineer  
 https://symbolics.lisp.engineer/  
 https://github.com/LispEngineer/  
 https://twitter.com/LispEngineer/ 

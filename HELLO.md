@@ -1,7 +1,7 @@
 # Arcadia's Hello World
 
-Douglas P. Fields, Jr.  
-symbolics at lisp.engineer
+Copyright 2016 Douglas P. Fields, Jr.  
+symbolics _at_ lisp.engineer
 
 1. Create a new, blank Unity 2D game, using Unity 5.4.0f3.
 2. Unity menu: Edit -> Project Settings -> Player
