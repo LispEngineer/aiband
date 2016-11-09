@@ -18,6 +18,11 @@
 ;; _Procedural Content Generation in Games_ at http://pcgbook.com/ .
 
 
+#_(require ['aiband.bsp :refer :all :reload true])
+#_(in-ns 'aiband.bsp)
+#_(use 'clojure.pprint)
+
+
 
 (def min-dim
   "Minimum dimension after fully partitioned"
@@ -186,7 +191,7 @@
         max-start-rang (- rang chosen-rang -1) ; Where our range starts
         start-rang (rand-int max-start-rang)]; Randomly chosen start offset from min
     #_(println rang rand-rang base-rang chosen-rang max-start-rang start-rang)
-    [start-rang (+ start-rang chosen-rang -1)]
+    [(+ min-val start-rang) (+ min-val start-rang chosen-rang -1)]
     ))
 
 ;; Test the above
@@ -211,8 +216,47 @@
     ;; We're a leaf, so make a room
     (make-room bi)
     ;; We're not a leaf, so don't make a room
-    (assoc bi :children (map #'add-rooms (:children bi)))))
+    (assoc bi :children (into [] (map #'add-rooms (:children bi))))))
 
 ;; Test the above
 #_(add-rooms (gen-bsp 10 10))
 #_(add-rooms (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4))))
+
+(defn visualize-rooms-internal
+  "Recursively fills in the 2d vector of characters with dots representing the rooms
+   of the BSP."
+  [bsp v node-num]
+  (if (nil? bsp)
+    ;; Terminal case - no bsp
+    [v node-num]
+    ;; Recursive case - a bsp
+    (let [node-char (char (+ (int \A) node-num))
+          room (:room bsp)
+          v-node (if (some? room) ; Check if nil
+                   (map2d-indexed 
+                      (constantly node-char)
+                      [(:min-x room) (:min-y room) (:max-x room) (:max-y room)]
+                      v)
+                   v)
+          [left-bsp right-bsp] (:children bsp)
+          [v-left num-left]   (visualize-rooms-internal left-bsp v-node (inc node-num))
+          [v-right num-right] (visualize-rooms-internal right-bsp v-left num-left)]
+      [v-right num-right])))
+
+
+(defn visualize-rooms
+  "Turns the BSP into a set of strings that represents all the rooms
+   graphically."
+  [bi]
+  (let [w (inc (:max-x bi)) ; These maxes are inclusive
+        h (inc (:max-y bi))
+        v (vec2d w h \ )
+        v-seq (first (visualize-rooms-internal bi v 0))]
+    (into [] (map #(apply str %) v-seq))))
+
+;; Test the above
+#_(do (doall (map println (visualize-rooms (add-rooms (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4))))))))
+
+#_(use 'clojure.pprint)
+#_(pprint (def y (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4)))))
+#_(pprint (def x (add-rooms y)))
