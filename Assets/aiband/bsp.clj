@@ -24,6 +24,8 @@
 
 
 
+;;;; CONFIGURATION ---------------------------------------------------------------
+
 (def min-dim
   "Minimum dimension after fully partitioned"
   6)
@@ -45,6 +47,14 @@
   "Base chance of splitting something with the maximum area before guaranteed
    split."
   0.85)
+
+(def min-room-dim-portion
+  "The minimum portion of each dimension that a room can be within a
+   leaf BSP node."
+  0.33)
+
+
+;;;; BASE BSP CODE ----------------------------------------------------------------
 
 (defn make-bsp
   [min-x min-y max-x max-y children]
@@ -175,18 +185,13 @@
 ;; These functions make rooms out of the fully partitioned BSP and then
 ;; connect them all together with alleyways.
 
-(def min-room-dim-portion
-  "The minimum portion of each dimension that a room can be within a
-   leaf BSP node."
-  0.5)
-
 (defn random-interval-within
   "Randomly chooses a sub-interval within the inclusive min-val to max-val
    interval that is at least min-portion percent of the size.
    This function IS NOT PURE."
   [min-val max-val min-portion]
   (let [rang (- max-val min-val -1) ; Range of choices
-        rand-rang (int (floor (* rang min-portion))) ; Which part is random
+        rand-rang (int (floor (* rang (- 1 min-portion)))) ; Which part is random
         base-rang (- rang rand-rang) ; Which part is fixed
         chosen-rang (+ base-rang (rand-int (inc rand-rang))) ; Our randomly chosen portion
         max-start-rang (- rang chosen-rang -1) ; Where our range starts
@@ -285,28 +290,54 @@
   [a b]
   (+ a (rand-int (- b a -1))))
 
+(defn random-room
+  "Picks a random room of all the rooms in this BSP, or nil if none.
+   THIS IS NOT PURE."
+  [bi]
+  (if (nil? bi) ; matching would be nice...
+    nil
+    ;; Find all our rooms by flattning our BSP tree and getting the rooms out
+    (let [rooms (into [] (keep identity (map :room (tree-seq (constantly true) :children bi))))
+          num-rooms (count rooms)
+          which-room (rand-int num-rooms)
+          room (get rooms which-room)]
+      room)))
+
 (defn add-corridor
-  "Adds a corridor between the two child BSPs."
+  "Adds a random corridor between the two child BSPs.
+   THIS IS NOT PURE."
   [bi]
   (if (zero? (count (:children bi)))
     ;; No children, hence no corridor
     bi
-    ;; TODO: Pick a location in one of the child rooms recursively
+    ;; Pick a location in one of the child rooms (recursively)
     (let [[left-bsp right-bsp] (:children bi)
-          left-room (:room left-bsp)
-          right-room (:room right-bsp)
-          start-x (rand-int-incl (:min-x left-room) (:max-x left-room))
-          start-y (rand-int-incl (:min-y left-room) (:max-y left-room))
+          left-room  (random-room left-bsp)
+          right-room (random-room right-bsp)
+          start-x (rand-int-incl (:min-x left-room)  (:max-x left-room))
+          start-y (rand-int-incl (:min-y left-room)  (:max-y left-room))
           end-x   (rand-int-incl (:min-x right-room) (:max-x right-room))
           end-y   (rand-int-incl (:min-y right-room) (:max-y right-room))
-          ; start-x (min start-x1 end-x1)
-          ; end-x   (max start-x1 end-x1)
-          ; start-y (min start-y1 end-y1)
-          ; end-y   (max start-y1 end-y1)
           horiz-first (zero? (rand-int 2))]
       (assoc bi :corridor 
         { :start-x start-x :start-y start-y
           :end-x end-x :end-y end-y :horiz-first horiz-first }))))
+
+(defn add-corridors
+  "Adds random corridors to all nodes of this BSP that connect rooms/leaves in
+   each half (each child). THIS IS NOT PURE."
+  [bi]
+  (cond
+    ;; Degenerate case
+    (nil? bi)
+    bi
+    ;; This is a leaf node which should have a room; ignore.
+    (zero? (count (:children bi)))
+    bi
+    ;; It's a node; add corridors to all the children, then to this one.
+    :else
+    (let [new-children (into [] (map add-corridors (:children bi)))]
+      (add-corridor (assoc bi :children new-children)))))
 
 
 
@@ -337,6 +368,12 @@
               v2 (reduce #(assoc2d %1 %2       end-y \.) v1 (range x1 (inc x2)))]
           v2)))))
 
+(defn visualize-corridors
+  "Adds all corridors from this BSP to the visualization."
+  [bi v]
+  (let [flat-bi (tree-seq (constantly true) :children bi)]
+    (reduce #(visualize-corridor %2 %1) v flat-bi)))
+
 ;; Test the above
 #_(pprint (def x (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4)))))
 ;; Repeat above until you have a BSP with exactly two levels (one set of children)
@@ -344,3 +381,14 @@
 #_(do (doall (map println (visualize-corridor y (second (visualize-rooms1 y))))) nil) 
 ;; Combine the above two
 #_(do (def y (add-corridor (add-rooms x))) (doall (map println (visualize-corridor y (second (visualize-rooms1 y))))) nil)
+
+
+;; This gets a sequence of all the rooms in the BSP
+#_(keep identity (map :room (tree-seq (constantly true) :children y)))
+
+;; Test the add-corridors plural version
+#_(do (def y (add-corridors (add-rooms x))) (doall (map println (visualize-corridor y (second (visualize-rooms1 y))))) nil) 
+
+;; Test the whole shebang
+#_(do (def x (partition-bsp (gen-bsp (* min-dim 12) (* min-dim 6)))) (def y (add-corridors (add-rooms x))) (doall (map println (visualize-corridors y (second (visualize-rooms1 y))))) nil) 
+
