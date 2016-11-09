@@ -1,5 +1,8 @@
-;;;; Douglas P. Fields, Jr.
-;;;; symbolics at lisp.engineer - https://symbolics.lisp.engineer/
+;; Copyright 2016 Douglas P. Fields, Jr.
+;; symbolics _at_ lisp.engineer
+;; https://symbolics.lisp.engineer/
+;; https://twitter.com/LispEngineer
+;; https://github.com/LispEngineer
 ;;;; Aiband - The Artificial Intelligence Roguelike
 
 ;; Two Dimensional Vector helpers

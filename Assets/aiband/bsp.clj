@@ -1,11 +1,17 @@
 (ns aiband.bsp
-  (:require [aiband.v2d :refer :all :reload true]))
+  (:require [aiband.v2d    :refer :all :reload true]
+            [aiband.clrjvm :refer :all :reload true]))
 
 ;; Binary Space Partitioning algorithm
 ;;
 ;; BSP data structure is inclusive, so the min and max numbers are all
 ;; valid coordinates. So, a width 10 and height 10 BSP entry will have
 ;; min 0, max 9 of each for x and y.
+;;
+;; Anyway, for more information on BSP, check out Chapter Three of
+;; _Procedural Content Generation in Games_ at http://pcgbook.com/ .
+
+
 
 (def min-dim
   "Minimum dimension after fully partitioned"
@@ -150,3 +156,31 @@
 ;; To print the visualization:
 #_(do (doall (map println (visualize (partition-bsp (gen-bsp 95 35))))) nil)
 
+
+
+;;;; ROOMS ----------------------------------------------------------------------
+
+;; These functions make rooms out of the fully partitioned BSP and then
+;; connect them all together with alleyways.
+
+(def min-room-dim-portion
+  "The minimum portion of each dimension that a room can be within a
+   leaf BSP node."
+  0.5)
+
+(defn random-interval-within
+  "Randomly chooses a sub-interval within the inclusive min-val to max-val
+   interval that is at least min-portion percent of the size."
+  [min-val max-val min-portion]
+  nil)
+
+(defn make-room
+  "Creates a room that will fit into the specified BSP area, randomly
+   sized and located within its [min-x min-y max-x max-y] boundaries."
+  [bi]
+  nil)
+
+(defn add-rooms
+  "Adds a randomly sized room to each leaf BSP node."
+  [bi]
+  nil)

@@ -1,8 +1,12 @@
 # Aiband
 
-Douglas P. Fields, Jr.  
-symbolics at lisp.engineer  
-https://symbolics.lisp.engineer/
+Copyright 2016 Douglas P. Fields, Jr.  
+symbolics _at_ lisp.engineer  
+https://symbolics.lisp.engineer/  
+https://twitter.com/LispEngineer  
+https://github.com/LispEngineer  
+
+See LICENSE.txt
 
 *Artificial Intelligence (ang)band*
 
@@ -16,6 +20,11 @@ possibly running several drones.
 * Unity 5.4.0f3
 * Arcadia (Unity/Clojure interop)
 * ClojureCLR 1.7.0
+
+To install:
+
+* Install Unity 5.4.0f3 on Mac (.1 might work, .2 probably doesn't)
+* Clone the 
 
 
 # Next Steps
