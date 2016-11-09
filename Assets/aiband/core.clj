@@ -7,7 +7,8 @@
 
 
 (ns aiband.core
-  (:require [aiband.v2d :refer :all :reload true]))
+  (:require [aiband.v2d :refer :all :reload true]
+            [aiband.bsp :as bsp :reload true]))
 
 ;; Load our module into the REPL
 #_(require '[aiband.core :refer :all :reload true])
@@ -97,6 +98,8 @@
   ;; {[x y] [{item} ...] [x y] [{item} ...]}
   ;; and of course put them in randomly
   [lvterr]
+  ;; XXX: CODE ME: Add the items to floor spaces of the level,
+  ;; preferably in rooms.
   [{:type :ring   :x 3 :y 3} 
    {:type :amulet :x 4 :y 4}])
 
@@ -115,8 +118,9 @@
 
 
 (defn create-player
-  "Creates an empty player object."
-  []
+  "Creates an empty player object and places them in the level."
+  ;; XXX: CODE ME: Place the player in the level on a floor tile
+  [level]
   {:x 6 :y 6 :hp 10 :hp-max 10})
 
 (defn player-move
@@ -178,7 +182,10 @@
 (defn create-level
   "Creates a new random level"
   []
-  (create-level-from-string level-map-string))
+  ; (create-level-from-string level-map-string))
+  ;; TODO: Save the BSP so we can create items and monsters in
+  ;; rooms and corridors appropriately.
+  (create-level-from-string (first (bsp/make-aiband-level 128 64))))
 
 
 
@@ -210,9 +217,10 @@
 (defn create-game
   "Creates a new game object with a player."
   []
-  {:player (create-player)
-   :level (create-level)
-   :messages (create-messages)})
+  (let [level (create-level)]
+    {:level level
+     :player (create-player level)
+     :messages (create-messages)}))
 
 (def game-state
   "The current full state of the Aiband game right now."

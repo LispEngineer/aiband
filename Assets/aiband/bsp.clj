@@ -392,3 +392,35 @@
 ;; Test the whole shebang
 #_(do (def x (partition-bsp (gen-bsp (* min-dim 12) (* min-dim 6)))) (def y (add-corridors (add-rooms x))) (doall (map println (visualize-corridors y (second (visualize-rooms1 y))))) nil) 
 
+;; And print it neatly
+
+;; FULL LEVEL -------------------------------------------------------------------
+
+;; These routines create a full level in a vector-of-strings format for Aiband
+
+(defn make-aiband-level
+  "Returns a random level visualization string as well as the source,
+   roomed & corridored BSP that generated it."
+  [width height]
+  (let [;; Create our root BSP
+        bsp         (gen-bsp (- width 2) (- height 2))
+        ;; Divide it up
+        partitioned (partition-bsp bsp)
+        ;; Add randomly sized rooms to each leaf
+        roomed      (add-rooms partitioned)
+        ;; Add corridors to each node
+        corridored  (add-corridors roomed)
+        ;; Visualize the rooms
+        vis-rooms   (second (visualize-rooms1 corridored))
+        ;; Visualize the corridors
+        vis-corrs   (visualize-corridors corridored vis-rooms)
+        ;; Convert the visualization into the format expected by aiband.core/create-level-from-string
+        vis-aiband  (map2d-indexed (fn [c i] (if (= i \ ) \  \.)) vis-corrs)
+        ;; We need blanks all around the edges so that walls can be put to floor spaces
+        ;; adjacent to the edges. So...
+        ;; Add a blank entry to the beginning and end of each row
+        vis-border1 (map #(concat [\ ] % [\ ]) vis-aiband)
+        ;; And add a blank line to the top and bottom
+        vis-border2 (concat [(repeat width \ )] vis-border1 [(repeat width \ )])]
+    [(into [] (map #(apply str %) vis-border2)) corridored]))
+
