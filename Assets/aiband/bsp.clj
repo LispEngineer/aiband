@@ -1,6 +1,12 @@
 (ns aiband.bsp
   (:require [aiband.v2d :refer :all :reload true]))
 
+;; Binary Space Partitioning algorithm
+;;
+;; BSP data structure is inclusive, so the min and max numbers are all
+;; valid coordinates. So, a width 10 and height 10 BSP entry will have
+;; min 0, max 9 of each for x and y.
+
 (def min-dim
   "Minimum dimension after fully partitioned"
   6)
@@ -12,11 +18,16 @@
 
 (def min-area-mult
   "Minimum multiple of the area for 100% chance of splitting"
-  4)
+  3)
 
 (def min-split-chance
   "Base chance of splitting something with the minimal area (decimal 0-1)."
   0.10)
+
+(def max-split-chance
+  "Base chance of splitting something with the maximum area before guaranteed
+   split."
+  0.85)
 
 (defn make-bsp
   [min-x min-y max-x max-y children]
@@ -52,6 +63,37 @@
                (if vs (:min-y bi) (+ d-split 1))
                (:max-x bi) (:max-y bi) [])]))
 
+(defn split?
+  "Decides if we should split this BSP.
+   It has to be big enough to split, but also
+   if not super-big has only a chance to split.
+   This is _not_ a pure function."
+  [bi] ; BSP in
+  (let [w (- (:max-x bi) (:min-x bi) -1)
+        h (- (:max-y bi) (:min-y bi) -1)]
+    (if 
+      ;; Big enough to split?
+      (and (or (> w (* 2 min-dim))
+               (> h (* 2 min-dim)))
+            (> (* w h) min-area))
+      (if (> (* w h) (* min-area min-area-mult))
+        ;; Guaranteed split - too big
+        true
+        ;; Randomly guess if we split
+        (let [mult-of-min (/ (* w h) min-area)
+              ;; mult-of-min will be 1 to min-area-mult
+              ;; scale it to 0-1
+              portion-to-split (/ (dec mult-of-min) (dec min-area-mult))
+              chance-to-split (+ min-split-chance
+                                 (* portion-to-split (- max-split-chance min-split-chance)))]
+          (println "mult-of-min:" mult-of-min "portion-to-split:" portion-to-split
+                   "chance-to-split:" chance-to-split)
+          ;; Split if our random number says to do it...
+          (<= (rand) chance-to-split)))
+      ;; Not big enough to split
+      false)))
+
+
 (defn partition-bsp
   "Returns the input bsp with children added, or
    if it's too small to partition, unchagned."
@@ -62,9 +104,7 @@
   (let [w (- (:max-x bsp-in) (:min-x bsp-in) -1)
         h (- (:max-y bsp-in) (:min-y bsp-in) -1)]
     ;; FIXME: Split it if EITHER dimension is big enough
-    (if (and (or (> w (* 2 min-dim))
-                 (> h (* 2 min-dim)))
-             (> (* w h) min-area))
+    (if (split? bsp-in)
       ;; Partition this one and its (new) children
       (assoc bsp-in :children (mapv partition-bsp (split bsp-in)))
       ;; Don't partition
@@ -74,7 +114,7 @@
 ;; { :min-x :min-y :max-x :max-y :children [...] }
 (defn gen-bsp
   [w h]
-  { :min-x 0 :max-x w :min-y 0 :max-y h :children () })
+  { :min-x 0 :max-x (dec w) :min-y 0 :max-y (dec h) :children () })
 
 
 
