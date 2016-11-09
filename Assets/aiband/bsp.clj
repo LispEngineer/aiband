@@ -56,6 +56,7 @@
    Returns list of two new bsps. Always leaves a column/row
    of buffer between the two. As such, make sure that the
    width or height of this input bsp is at least 3."
+  ;; TODO: Add a variable size buffer between them for more variety, if space allows
   [bi] ; bsp-in
   ;; Only split an axis if it's big enough
   (let [vs  ; vertical split
@@ -244,7 +245,7 @@
       [v-right num-right])))
 
 
-(defn visualize-rooms
+(defn visualize-rooms1
   "Turns the BSP into a set of strings that represents all the rooms
    graphically."
   [bi]
@@ -252,7 +253,13 @@
         h (inc (:max-y bi))
         v (vec2d w h \ )
         v-seq (first (visualize-rooms-internal bi v 0))]
-    (into [] (map #(apply str %) v-seq))))
+    [(into [] (map #(apply str %) v-seq)) (into2d [] v-seq)]))
+
+(defn visualize-rooms
+  "Turns the BSP into a set of strings that represents all the rooms
+   graphically."
+  [bi]
+  (first (visualize-rooms1 bi)))
 
 ;; Test the above
 #_(do (doall (map println (visualize-rooms (add-rooms (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4))))))))
@@ -260,3 +267,80 @@
 #_(use 'clojure.pprint)
 #_(pprint (def y (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4)))))
 #_(pprint (def x (add-rooms y)))
+
+
+;;;; CORRIDORS ---------------------------------------------------------------
+
+;; This section of the code augments the map with corridors.
+;; Our simple corridor has five pieces of data:
+;;   start/end x/y coordinate
+;;   horiztonal or vertical first
+;; So, each corridor is at most two line segments, one moving horizontal and
+;; one moving vertical.
+;; The start coordinate is always <= the end coordinate
+
+(defn rand-int-incl
+  "Random number between the two integers inclusive of both of them.
+   Assert: a < b."
+  [a b]
+  (+ a (rand-int (- b a -1))))
+
+(defn add-corridor
+  "Adds a corridor between the two child BSPs."
+  [bi]
+  (if (zero? (count (:children bi)))
+    ;; No children, hence no corridor
+    bi
+    ;; TODO: Pick a location in one of the child rooms recursively
+    (let [[left-bsp right-bsp] (:children bi)
+          left-room (:room left-bsp)
+          right-room (:room right-bsp)
+          start-x (rand-int-incl (:min-x left-room) (:max-x left-room))
+          start-y (rand-int-incl (:min-y left-room) (:max-y left-room))
+          end-x   (rand-int-incl (:min-x right-room) (:max-x right-room))
+          end-y   (rand-int-incl (:min-y right-room) (:max-y right-room))
+          ; start-x (min start-x1 end-x1)
+          ; end-x   (max start-x1 end-x1)
+          ; start-y (min start-y1 end-y1)
+          ; end-y   (max start-y1 end-y1)
+          horiz-first (zero? (rand-int 2))]
+      (assoc bi :corridor 
+        { :start-x start-x :start-y start-y
+          :end-x end-x :end-y end-y :horiz-first horiz-first }))))
+
+
+
+(defn visualize-corridor
+  "Adds a corridor to this BSP's visualization (non-recursively)"
+  [bi v]
+  (cond
+    ;; No BSP input
+    (nil? bi)
+    v
+    ;; No corridor in the BSP input
+    (nil? (:corridor bi))
+    v
+    ;; Draw the corridor with dots into the 2d character vector
+    :else
+    (let [{:keys [start-x start-y end-x end-y horiz-first]} (:corridor bi)
+          ;; range needs to be ascending else it returns an empty seq
+          [x1 x2] [(min start-x end-x) (max start-x end-x)]
+          [y1 y2] [(min start-y end-y) (max start-y end-y)]]
+      (if horiz-first
+        ;; Draw the horizontal line first
+        ;; See: https://stackoverflow.com/questions/22730726/idiomatic-way-to-assoc-multiple-elements-in-vector
+        (let [v1 (reduce #(assoc2d %1 %2    start-y \.) v  (range x1 (inc x2)))
+              v2 (reduce #(assoc2d %1 end-x %2      \.) v1 (range y1 (inc y2)))]
+          v2)
+        ;; Draw the vertical line first
+        (let [v1 (reduce #(assoc2d %1 start-x %2     \.) v  (range y1 (inc y2)))
+              v2 (reduce #(assoc2d %1 %2       end-y \.) v1 (range x1 (inc x2)))]
+          v2)))))
+
+;; Test the above
+#_(pprint (def x (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4)))))
+;; Repeat above until you have a BSP with exactly two levels (one set of children)
+#_(pprint (def y (add-corridor (add-rooms x))))
+#_(do (doall (map println (visualize-corridor y (second (visualize-rooms1 y))))) nil) 
+;; Combine the above two
+#_(do (def y (add-corridor (add-rooms x))) (doall (map println (visualize-corridor y (second (visualize-rooms1 y))))) nil)
