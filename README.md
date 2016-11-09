@@ -25,11 +25,23 @@ possibly running several drones.
 * Arcadia (Unity/Clojure interop)
 * ClojureCLR 1.7.0
 
-To install:
+To install: (This assumes use of a Mac)
 
 * Install Unity 5.4.0f3 on Mac (.1 might work, .2 probably doesn't)
-* Clone the 
+* Clone the repo with Aiband
+* Run the `install_arcadia.sh` script to install Arcadia
+* Open the project in Unity 3D
+* Open an Arcadia REPL
+* If the hooks have come unset, using the REPL add them back with this code:
 
+```clojure
+(require '[arcadia.core :refer :all])
+(require '[minimal.core :refer :all :reload true])
+(in-ns 'minimal.core)
+(repl-add-all-hooks)
+```  
+
+* Run the game in Unity player or export the game and run stand-alone
 
 # Next Steps
 
