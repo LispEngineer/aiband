@@ -32,3 +32,11 @@
     :clj  (eval `(java.lang.Math/ceil ~v))
     :cljr (eval `(System.Math/Ceiling (double ~v)))
     nil))
+
+(defn floor
+  "Floor function in math"
+  [v]
+  (case platform
+    :clj  (eval `(java.lang.Math/floor ~v))
+    :cljr (eval `(System.Math/Floor (double ~v)))
+    nil))

@@ -1,3 +1,9 @@
+;; Copyright 2016 Douglas P. Fields, Jr.
+;; symbolics _at_ lisp.engineer
+;; https://symbolics.lisp.engineer/
+;; https://twitter.com/LispEngineer
+;; https://github.com/LispEngineer
+
 (ns aiband.bsp
   (:require [aiband.v2d    :refer :all :reload true]
             [aiband.clrjvm :refer :all :reload true]))
@@ -92,7 +98,7 @@
               portion-to-split (/ (dec mult-of-min) (dec min-area-mult))
               chance-to-split (+ min-split-chance
                                  (* portion-to-split (- max-split-chance min-split-chance)))]
-          (println "mult-of-min:" mult-of-min "portion-to-split:" portion-to-split
+          #_(println "mult-of-min:" mult-of-min "portion-to-split:" portion-to-split
                    "chance-to-split:" chance-to-split)
           ;; Split if our random number says to do it...
           (<= (rand) chance-to-split)))
@@ -170,17 +176,43 @@
 
 (defn random-interval-within
   "Randomly chooses a sub-interval within the inclusive min-val to max-val
-   interval that is at least min-portion percent of the size."
+   interval that is at least min-portion percent of the size.
+   This function IS NOT PURE."
   [min-val max-val min-portion]
-  nil)
+  (let [rang (- max-val min-val -1) ; Range of choices
+        rand-rang (int (floor (* rang min-portion))) ; Which part is random
+        base-rang (- rang rand-rang) ; Which part is fixed
+        chosen-rang (+ base-rang (rand-int (inc rand-rang))) ; Our randomly chosen portion
+        max-start-rang (- rang chosen-rang -1) ; Where our range starts
+        start-rang (rand-int max-start-rang)]; Randomly chosen start offset from min
+    #_(println rang rand-rang base-rang chosen-rang max-start-rang start-rang)
+    [start-rang (+ start-rang chosen-rang -1)]
+    ))
+
+;; Test the above
+#_(sort (reduce conj #{} (map (fn [x] (random-interval-within 0 5 0.5)) (range 0 100))))
+
 
 (defn make-room
   "Creates a room that will fit into the specified BSP area, randomly
    sized and located within its [min-x min-y max-x max-y] boundaries."
   [bi]
-  nil)
+  (let [[room-min-x room-max-x] (random-interval-within (:min-x bi) (:max-x bi) min-room-dim-portion)
+        [room-min-y room-max-y] (random-interval-within (:min-y bi) (:max-y bi) min-room-dim-portion)]
+    (assoc bi :room {:min-x room-min-x :max-x room-max-x :min-y room-min-y :max-y room-max-y})))
+
+;; Test the above
+#_(make-room (gen-bsp 10 10))
 
 (defn add-rooms
   "Adds a randomly sized room to each leaf BSP node."
   [bi]
-  nil)
+  (if (<= (count (:children bi)) 0)
+    ;; We're a leaf, so make a room
+    (make-room bi)
+    ;; We're not a leaf, so don't make a room
+    (assoc bi :children (map #'add-rooms (:children bi)))))
+
+;; Test the above
+#_(add-rooms (gen-bsp 10 10))
+#_(add-rooms (partition-bsp (gen-bsp (* min-dim 4) (* min-dim 4))))
