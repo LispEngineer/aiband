@@ -34,12 +34,22 @@
   "Runs the specified function against each item in the sequence of sequences.
    The function's first parameter is [x y] and the second is the item at that
    location in the 2d sequence. Y is the coordinate in the outer sequence (row), and
-   x is the coordinate in the inner sequence (column)."
-   [func seq2d]
-   (map-indexed
+   x is the coordinate in the inner sequence (column).
+
+   In the second version, it only maps the specified indices, inclusive:
+   [min-x min-y max-x max-y]."
+  ([func seq2d]
+    (map-indexed
       (fn [y row]
         (map-indexed (fn [x itm] (func [x y] itm)) row))
       seq2d))
+  ([func [min-x min-y max-x max-y] seq2d]
+    (map2d-indexed
+      (fn [[x y :as coord] itm]
+        (if (and (<= min-x x max-x) (<= min-y y max-y))
+          (func coord itm)
+          itm))
+      seq2d)))
 
 (defn into2d
   "Converts a seq of seq into a nested structure.
