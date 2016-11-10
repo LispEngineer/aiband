@@ -1,5 +1,8 @@
-;;;; Douglas P. Fields, Jr.
-;;;; symbolics at lisp.engineer - https://symbolics.lisp.engineer/
+;; Copyright 2016 Douglas P. Fields, Jr.
+;; symbolics _at_ lisp.engineer
+;; https://symbolics.lisp.engineer/
+;; https://twitter.com/LispEngineer
+;; https://github.com/LispEngineer
 ;;;; Aiband - The Artificial Intelligence Roguelike
 
 
@@ -143,7 +146,7 @@
     :else        "TileRock"))
 
 (def gon-main-camera "Main camera object name" "Main Camera")
-(def tile-size "The (square) size of each dungeon tile" 32)
+(def tile-size "The (square) size of each dungeon tile" 24)
 
 ;; We use an orthographic size of half the screen height
 ;; divided by the size of our tiles.
