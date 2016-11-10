@@ -71,6 +71,30 @@
     "                                                                                                                                "
    ])
 
+
+
+(defn rand-coord-seq
+  "Returns an infinitely long lazy sequence of random
+   [x y] coordinates within the specified bounds of width and height."
+  [w h]
+  (repeatedly #(do [(rand-int w) (rand-int h)])))
+
+(defn rand-location-t
+  "Returns a random coordinate in the given level with the
+   specified terrain type. Gives up after 10,000 tries
+   and returns nil."
+  [lv terr]
+  (some ; Returns the first "truthy" value (not false or nil)
+    (fn [coord]
+      (if (= (get2d (:terrain lv) coord) terr)
+        coord
+        nil))
+    (take 10000 (rand-coord-seq (:width lv) (:height lv)))))
+
+
+
+
+
 (defn char->terrain
   "Converts a character to a terrain."
   [ch]
@@ -92,16 +116,32 @@
               :wall t)))
       lvstr)))
 
+(def min-items
+  "Minimum number of random items per level"
+  15)
+(def max-items
+  "Maximum number of random items per level"
+  50)
+
+;;; FIXME: Make the representation of items:
+;;; {[x y] [{item} ...] [x y] [{item} ...]}
+
+(defn create-random-item-in
+  "Creates a random item that is on a floor space of the
+   specified level. NOT PURE."
+  [lv]
+  (let [[x y] (rand-location-t lv :floor)
+        i-type (get [:ring :amulet] (rand-int 2))]
+    {:type i-type :x x :y y}))
+
 (defn create-items-in
-  "Creates some random items in this level on floor spaces."
-  ;; FIXME: Make the representation of items:
-  ;; {[x y] [{item} ...] [x y] [{item} ...]}
-  ;; and of course put them in randomly
-  [lvterr]
-  ;; XXX: CODE ME: Add the items to floor spaces of the level,
-  ;; preferably in rooms.
-  [{:type :ring   :x 3 :y 3} 
-   {:type :amulet :x 4 :y 4}])
+  "Creates some random items in this level on floor spaces.
+   NOT PURE."
+  [lv]
+  (into [] 
+    (take (+ min-items (rand-int (- max-items min-items -1)))
+      (repeatedly (fn [] (create-random-item-in lv))))))
+
 
 (defn create-level-from-string
   "Creates an Aiband level from a vector of strings.
@@ -111,17 +151,18 @@
   (let [max-y (count lvstr)
         max-x (count (first lvstr))
         lev (convert-level-from-string lvstr)
-        itms (create-items-in lev)]
-    {:width max-x :height max-y :terrain lev :items itms}))
-
+        lv-ni {:width max-x :height max-y :terrain lev :items []} ; level with no items
+        itms (create-items-in lv-ni)]
+    (assoc lv-ni :items itms)))
 
 
 
 (defn create-player
   "Creates an empty player object and places them in the level."
-  ;; XXX: CODE ME: Place the player in the level on a floor tile
+  ;; Place the player in the level on a random floor tile
   [level]
-  {:x 6 :y 6 :hp 10 :hp-max 10})
+  (let [[start-x start-y] (rand-location-t level :floor)]
+    {:x start-x :y start-y :hp 10 :hp-max 10}))
 
 (defn player-move
   "Moves the player object in this game by the specified delta.
