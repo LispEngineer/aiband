@@ -45,8 +45,7 @@ To install: (This assumes use of a Mac)
 
 # Next Steps
 
-1. Make player icon animated?
-2. Have a text box that gives information on whatever is under the mouse pointer?
+1. Have a text box that gives information on whatever is under the mouse pointer?
 
 # Unity Configuration
 
