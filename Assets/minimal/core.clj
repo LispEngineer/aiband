@@ -21,10 +21,14 @@
 
 
 (ns minimal.core
-  (:import [UnityEngine Input KeyCode Camera Physics Time UI.Text Camera Resources Vector3 Quaternion Screen])
+  (:import [UnityEngine Input KeyCode Camera Physics Time 
+            UI.Text UI.ScrollRect
+            Camera Resources Vector3 Quaternion Screen Canvas])
   (:require [aiband.core :as ai])
   (:use arcadia.core arcadia.linear #_aiband.core))
 
+
+;; HELPERS ------------------------------------------------------------------------------
 
 
 (defn create-thing
@@ -37,6 +41,7 @@
     thing))
 
 
+;; GAME STATE CHANGE -------------------------------------------------------------------
 
 ;; Functions to determine if the game state has changed this frame.
 ;; We should call this only in the LateUpdate phases, as the game state is
@@ -53,12 +58,98 @@
 (defn has-game-state-changed?
   "IMPURE: Determines if the game state has changed by checking the state of the
    previous frame number against the current frame number. Updates our game state
-   changed cache for this frame if necessary."
+   changed cache for this frame if necessary. Does its work in an STM block."
   []
-  (let [{:keys [frame gs changed]} @gsc-cache
-        currentFrame (. Time frameCount)]
-    (arcadia.core/log "Frame count:" currentFrame)))
+  (dosync
+    (let [{:keys [frame gs changed]} @gsc-cache
+          currentFrame (. Time frameCount)]
+      #_(arcadia.core/log "Frame count:" currentFrame)
+      (if (= frame currentFrame)
+        ;; We already calculated this for this frame
+        changed
+        ;; Let's calculate for this frame and
+        (if (identical? @ai/game-state gs)
+          ;; Nothing changed
+          (do
+            (reset! gsc-cache (make-game-state-cache currentFrame gs false))
+            false)
+          ;; Something changed
+          (do
+            (reset! gsc-cache (make-game-state-cache currentFrame @ai/game-state true))
+            true))))))
 
+
+;; SCROLLABLE TEXT WINDOW -----------------------------------------------------------
+
+
+(defn scroll-to-bottom
+  "Scrolls the specified scrollable rectangle to the bottom. This causes an the
+   Canvas to update at least twice."
+  [src] ; ScrollRect Component
+  (. Canvas (ForceUpdateCanvases))
+  (set! (. src verticalNormalizedPosition) (float 0.0))
+  (. Canvas (ForceUpdateCanvases)))
+
+(defn get-parent
+  "Gets the parent GameObject of this GameObject, or nil if we're the top
+   of the hierarchy. Works around a bug in Arcadia's 'parent' routine."
+  ;; In C#:
+  ;; go.transform.parent.gameObject does the trick, but .parent might be null
+  ;; if it has no parent, so we have to double check.
+  [go]
+  (let [p (.. go transform parent)]
+    (if (null-obj? p)
+      nil
+      (. p gameObject))))
+
+;; Test the above
+#_
+(do
+  (get-parent (object-named "Main Camera")) ; nil
+  (. (get-parent (object-named "MessageText")) name) ; AvoidContentSizeFitterError
+  )
+
+
+(defn parent-with-cmpt
+  "Traverses the game object hierarchy upwards until it finds an object with
+   the specified kind of component. Returns that game object (not the component),
+   which could be the originally passed game object. Returns nil if none found."
+  [go ct] ; game object, component type
+  (cond
+    ;; We've hit the root. Remember that Unity's null object is not Clojure's nil.
+    (null-obj? go)
+    nil
+    ;; We don't have a component here.
+    (null-obj? (cmpt go ct))
+    (parent-with-cmpt (get-parent go) ct) ; No  tail recursion optimization, oh well
+    ;; Found it
+    :else
+    go))
+
+;; Test the above
+#_
+(do
+  (def x (arcadia.core/object-named "MessageText"))
+  (parent-with-cmpt x UnityEngine.UI.Text) ; Same as x
+  (. (parent-with-cmpt x UnityEngine.UI.ScrollRect) name) ; MessageScroll
+  (parent-with-cmpt x UnityEngine.Camera) ; nil
+  )
+
+
+(defn add-text-and-scroll
+  "Appends the specified text to the specified game object's Text component,
+   then walks the hierarchy of game objects upwards to find a game object with
+   a ScrollRect and if found then scrolls it to the bottom."
+  [go msg]
+  (let [t-go (cmpt go Text)
+        sr (parent-with-cmpt go ScrollRect)]
+    (when (and t-go sr)
+      (set! (. t-go text) (str (. t-go text) msg))
+      (scroll-to-bottom (cmpt sr ScrollRect)))))
+
+
+
+;; ----------------------------------------------------------------------------------
 
 
 ;; Log a message when arrow keys are first pushed
@@ -235,7 +326,7 @@
           ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
           (. (. go transform) SetParent tt)
           #_(arcadia.core/log "Created" x y t go) ))
-      #_(arcadia.core/log "Finished terrain row" y)))
+      #_(arcadia.core/log "Finished terrain row" y) ))
   (arcadia.core/log "Game startup complete"))
 
 ;; HOOKS ------------------------------------------------------------------------
@@ -243,9 +334,12 @@
 (defn hook-late-update
   "Calls all our LateUpdate hooks in order with the expected game objects."
   [startup-go]
-  (update-gui startup-go)
-  (update-items startup-go)
-  (update-player (object-named "Player")))
+  (when (has-game-state-changed?)
+    (arcadia.core/log "Game state changed, running LateUpdate hooks, frame:" (:frame @gsc-cache))
+    (add-text-and-scroll (object-named "MessageText") (str "\n\nPlaying turn " (:frame @gsc-cache)))
+    (update-gui startup-go)
+    (update-items startup-go)
+    (update-player (object-named "Player"))))
 
 (defn hook-update
   "Calls all our LateUpdate hooks in order with the expected game objects."

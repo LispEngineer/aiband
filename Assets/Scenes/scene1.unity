@@ -426,7 +426,12 @@ Prefab:
     - target: {fileID: 224000010031149782, guid: cd243ee17721041639440c2597bde2fa,
         type: 2}
       propertyPath: m_SizeDelta.y
-      value: 1584
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 114000010236632946, guid: cd243ee17721041639440c2597bde2fa,
+        type: 2}
+      propertyPath: m_Text
+      value: Welcome to Aiband!
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: cd243ee17721041639440c2597bde2fa, type: 2}
