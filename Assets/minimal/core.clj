@@ -24,8 +24,10 @@
   (:import [UnityEngine Input KeyCode Camera Physics Time 
             UI.Text UI.ScrollRect
             Camera Resources Vector3 Quaternion Screen Canvas])
-  (:require [aiband.core :as ai])
-  (:use arcadia.core arcadia.linear #_aiband.core))
+  (:require [aiband.core :as ai]
+            [aiband.clrjvm :refer :all :reload true]
+            [aiband.v2d :refer :all :reload true])
+  (:use arcadia.core arcadia.linear #_aiband.core ))
 
 
 ;; HELPERS ------------------------------------------------------------------------------
@@ -147,6 +149,34 @@
       (set! (. t-go text) (str (. t-go text) msg))
       (scroll-to-bottom (cmpt sr ScrollRect)))))
 
+
+
+;; MOUSEOVER --------------------------------------------------------------------
+
+(defn log-mouse-enter
+  "Logs a message to unity log whenever the mouse enters something."
+  [go]
+  (arcadia.core/log "Mouse entered: " (. go name) (.. go transform x) (.. go transform y)))
+
+(def last-mouse-location
+  "[x y] coordinates of the last place the mouse hovered over."
+  (atom [0 0]))
+
+(defn save-mouse-location
+  "Saves the mouse location in terms of Game X,Y location to an atom every
+   time it changes. Called with an OnMouseEnter hook."
+  [go]
+  (log-mouse-enter go)
+  (reset! last-mouse-location
+    [(floor (.. go transform x) (.. go transform y))]))
+
+(defn update-mouseover-text
+  "Updates the text box that describes what the mouse is hovering over.
+   Floor -> Items -> Monsters -> You."
+  [motgo] ; MouseOverText Game Object
+  (let [tile (get2d (:terrain (:level @ai/game-state)) @last-mouse-location)
+        txt (cmpt motgo Text)]
+    (set! (. txt text) (str tile))))
 
 
 ;; ----------------------------------------------------------------------------------
@@ -322,6 +352,10 @@
         (let [go (create-thing (terrain-tile t) (arcadia.linear/v3 x y 0.0))]
           ;; Set our name
           (set! (. go name) (str "terrain-" x "," y))
+          ;; We have all our floor items save the fact that the mouse is there.
+          ;; This hook requires a Collider else it will not get triggered.
+          ;; Hence, all our terrain prefabs need to have this information.
+          (hook+ go :on-mouse-enter #'minimal.core/save-mouse-location)
           ;; Put it in the Terrain holder
           ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
           (. (. go transform) SetParent tt)
@@ -381,6 +415,7 @@
     (update-items startup-go)
     (update-player (object-named "Player"))
     (update-messages (object-named "MessageText"))
+    (update-mouseover-text (object-named "MouseOverText"))
     ))
 
 (defn hook-update
