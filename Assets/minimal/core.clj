@@ -329,6 +329,46 @@
       #_(arcadia.core/log "Finished terrain row" y) ))
   (arcadia.core/log "Game startup complete"))
 
+;; Messages ---------------------------------------------------------------------
+
+(def last-message-shown
+  "What the last message number from @ai/game-state :messages is that
+   we have added to our text box."
+  (atom 0))
+
+(defn update-messages
+  "Checks if there have been any new messages added to the game state, and
+   if so, adds them to our Unity scrolling text box.
+   TODO: Add code to remove old messages once the scrollback gets beyond a
+   reasonable length (1k messages?)."
+  [mtgo] ;; Message Text Game Object
+  (let [lm @last-message-shown
+        cm (get-in @ai/game-state [:messages :final])
+        im (get-in @ai/game-state [:messages :initial])
+        msgs (get-in @ai/game-state [:messages :text])]
+    (when (not= lm cm)
+      ;; Update our messages
+      (doseq [m-idx (range (- lm im -1) (+ cm 1))]
+        (add-text-and-scroll mtgo (str "\n" (get msgs (- m-idx 1)))))
+      (reset! last-message-shown cm))))
+
+;; Test the above
+;; Note that you'll have to reset the GameObject if Unity isn't running cause it
+;; will change the Text of the default game object state.
+#_
+(do
+  (reset! ai/game-state {:messages {:initial 0 :final 0 :text []}})
+  (update-messages (object-named "MessageText"))
+  (reset! ai/game-state {:messages {:initial 0 :final 4 :text ["Message 1" "Message 2" "Message 3" "Msg 4"]}})
+  (update-messages (object-named "MessageText"))
+  (update-messages (object-named "MessageText"))
+  (reset! ai/game-state {:messages {:initial 1 :final 4 :text ["Message 2" "Message 3" "Msg 4"]}})
+  (update-messages (object-named "MessageText"))
+  (reset! ai/game-state {:messages {:initial 2 :final 5 :text ["Message 3" "Msg 4" "Add a 5th"]}})
+  (update-messages (object-named "MessageText"))
+  (update-messages (object-named "MessageText"))
+  )
+
 ;; HOOKS ------------------------------------------------------------------------
 
 (defn hook-late-update
@@ -336,10 +376,12 @@
   [startup-go]
   (when (has-game-state-changed?)
     (arcadia.core/log "Game state changed, running LateUpdate hooks, frame:" (:frame @gsc-cache))
-    (add-text-and-scroll (object-named "MessageText") (str "\n\nPlaying turn " (:frame @gsc-cache)))
+    #_(add-text-and-scroll (object-named "MessageText") (str "\nPlaying turn " (:frame @gsc-cache)))
     (update-gui startup-go)
     (update-items startup-go)
-    (update-player (object-named "Player"))))
+    (update-player (object-named "Player"))
+    (update-messages (object-named "MessageText"))
+    ))
 
 (defn hook-update
   "Calls all our LateUpdate hooks in order with the expected game objects."

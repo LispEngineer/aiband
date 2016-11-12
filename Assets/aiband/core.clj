@@ -193,8 +193,8 @@
         ny     (+ p-y dy)]
     (cond 
       ;; Figure out every way the move could/should fail
-      (or (< nx 0) (< ny 0) (>= nx w) (>= ny h)) [nil "Invalid move"]
-      (not= (get2d t nx ny) :floor) [nil "Invalid terrain"]
+      (or (< nx 0) (< ny 0) (>= nx w) (>= ny h)) [nil (str "Invalid move: " nx "," ny)]
+      (not= (get2d t nx ny) :floor) [nil (str "Invalid terrain: " nx "," ny)]
       ;; Otherwise, move the player.
       :else
         [(-> game
@@ -231,7 +231,12 @@
 
 
 (defn create-messages
-  "Sets up our messages list."
+  "Sets up our messages list.
+   :initial - The ID of the first message in the list. IDs are monotonically increasing.
+   :final - The ID of the final message in the list. If the ID is the same as
+            initial, then there are no messages in the list.
+   :text - The messages themselves. Message with ID x is located at vector index
+           (x - initial - 1). This means that the first real message will have ID 1."
   []
   {:initial 0 :final 0 :text []})
 
