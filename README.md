@@ -74,6 +74,7 @@ and the texture will take up exactly 1x1 Unity square.
 * Items - items on top of terrain
 * Mobs - "Mobile Objects" a.k.a. monsters, on top of tiems
 * Player - not sure what this layer could be used for
+* GUI - For the GUI overlay
 
 ## 
 
@@ -81,6 +82,16 @@ and the texture will take up exactly 1x1 Unity square.
 
 
 # Miscellaneous Notes
+
+## Unity Canvas and Camera
+
+To make the Canvas and the Camera in the Scene Editor the same size:
+
+* In Canvas inspector, set the "Render Mode" of Canvas to `Screen Space - Camera`
+* Drag the Main Camera from your scene to the `Render Camera`
+* Set the Sorting Layer to the highest one (see GUI Sorting Layer above)
+* Make whatever other settings you want.
+
 
 ## Arcadia Issues
 

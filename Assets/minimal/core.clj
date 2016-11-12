@@ -6,6 +6,20 @@
 ;;;; Aiband - The Artificial Intelligence Roguelike
 
 
+;; One of the main things we do is try to avoid doing any GUI updates
+;; unless the game state has updated. So, our main Unity loop looks like
+;; this:
+;;
+;; Update - do any game state updates
+;; LateUpdate - do any GUI state updates
+;;
+;; Since we can't use the Script Execution Order to sequence our hooks
+;; (Edit -> Project Settings -> Script Execution Order)
+;; We create one hook per call and then call out to all our other things
+;; that we need to update from there. Those hooks are on an otherwise
+;; unused GameObject called "Startup" in the scene.
+
+
 (ns minimal.core
   (:import [UnityEngine Input KeyCode Camera Physics Time UI.Text Camera Resources Vector3 Quaternion Screen])
   (:require [aiband.core :as ai])
@@ -24,8 +38,33 @@
 
 
 
+;; Functions to determine if the game state has changed this frame.
+;; We should call this only in the LateUpdate phases, as the game state is
+;; intended to change during the Update phases.
+
+(defn make-game-state-cache
+  [frame gs changed]
+  {:frame frame :gs gs :changed changed})
+
+(def gsc-cache
+  "Our most recent game state changed cache."
+  (atom (make-game-state-cache -1 nil false)))
+
+(defn has-game-state-changed?
+  "IMPURE: Determines if the game state has changed by checking the state of the
+   previous frame number against the current frame number. Updates our game state
+   changed cache for this frame if necessary."
+  []
+  (let [{:keys [frame gs changed]} @gsc-cache
+        currentFrame (. Time frameCount)]
+    (arcadia.core/log "Frame count:" currentFrame)))
+
+
+
 ;; Log a message when arrow keys are first pushed
-(defn move-when-arrow-pressed [o]
+(defn move-when-arrow-pressed 
+  "HOOK: Handles movement keys as GetKeyDown events."
+  [o]
   (let [dx1 (if (Input/GetKeyDown KeyCode/LeftArrow) -1 0)
         dx2 (if (Input/GetKeyDown KeyCode/RightArrow) 1 0)
         ;; Coordinate origin 0,0 is at the bottom left, with +X -> right
@@ -43,7 +82,7 @@
 ;; TODO: Only do anything in here if the state is changed from the last
 ;; time we did something in here.
 (defn update-gui
-  "Updates the Unity GUI items with latest data."
+  "HOOK: Updates the Unity GUI items with latest data."
   [o]
   (let [go-hp      (object-named "HPData") ; FIXME: Magic string
         go-hp-text (cmpt go-hp Text)
@@ -53,6 +92,7 @@
         go-y-text  (cmpt go-y Text)
         state      @ai/game-state
         player     (:player state)]
+    (has-game-state-changed?)
     #_(arcadia.core/log "update-gui:" go-x-text state)
     #_(arcadia.core/log "update-gui start")
     (set! (. go-x-text text) (str (:x player)))
@@ -65,7 +105,7 @@
 ;; Updates the player to show in the correct position.
 ;; Call this in a LateUpdate.
 (defn update-player
-  "Updates the player sprite and position, and the camera."
+  "HOOK: Updates the player sprite and position, and the camera."
   [go-player]
   (let [p-t (. go-player transform)
         p-p (. p-t position)
@@ -127,7 +167,7 @@
 ;; and then recreates them appropriately.
 ;; This is probably not efficient and should be revisited.
 (defn update-items
-  "Updates the drawing of all items in the game."
+  "HOOK: Updates the drawing of all items in the game."
   [o]
   #_(arcadia.core/log "Removing items")
   (remove-items)
@@ -175,7 +215,7 @@
 ;; We assume it's set up as a listener for Awake message on a Startup object
 ;; in the scene which doesn't otherwise do anything.
 (defn game-startup
-  "Game startup/setup routine"
+  "HOOK: Game startup/setup routine"
   [o]
   (arcadia.core/log "Game startup")
   (camera-setup)
@@ -198,20 +238,54 @@
       #_(arcadia.core/log "Finished terrain row" y)))
   (arcadia.core/log "Game startup complete"))
 
+;; HOOKS ------------------------------------------------------------------------
+
+(defn hook-late-update
+  "Calls all our LateUpdate hooks in order with the expected game objects."
+  [startup-go]
+  (update-gui startup-go)
+  (update-items startup-go)
+  (update-player (object-named "Player")))
+
+(defn hook-update
+  "Calls all our LateUpdate hooks in order with the expected game objects."
+  [startup-go]
+  (move-when-arrow-pressed startup-go))
+
+(defn hook-start
+  "Calls all our Start hooks in order with the expected game objects."
+  [startup-go]
+  (game-startup startup-go))
+
+;; REPL HOOKER -------------------------------------------------------------------
+
 (defn repl-add-all-hooks
   "Add all the hooks to all objects. Objects lose their hooks a lot."
   []
   ;; Hook the :start for standalone.
   ;; Per Ramsey Nasser, "we do funky things with awake that might get in the way of user code"
-  (hook+ (object-named "Startup") :start       #'minimal.core/game-startup)
-  (hook+ (object-named "Startup") :update      #'minimal.core/move-when-arrow-pressed)
-  (hook+ (object-named "Startup") :late-update #'minimal.core/update-gui)
-  (hook+ (object-named "Startup") :late-update #'minimal.core/update-items)
-  (hook+ (object-named "Player" ) :late-update #'minimal.core/update-player))
+  (let [startup (object-named "Startup")]
+    (doseq [h [:start :update :late-update]]
+      (hook-clear startup h))
+    (hook+ startup :start       #'minimal.core/hook-start)
+    (hook+ startup :update      #'minimal.core/hook-update)
+    (hook+ startup :late-update #'minimal.core/hook-late-update)
+    ))
 
 
 ;; Arcadia REPL --------------------------------------------------------------------------
 
+;; How to set up all our hooks: run the forms below in the REPL
+#_
+(do
+  ;; Set up our REPL and hooks
+  (require '[arcadia.core :refer :all])
+  (require '[minimal.core :refer :all :reload true])
+  (in-ns 'minimal.core)
+  (repl-add-all-hooks)
+  )
+
+;; Other random things that might be useful in the REPL
 #_
 (do
   ;; Set up our REPL and hooks
@@ -222,13 +296,8 @@
   (in-ns 'aiband.core)
 
   ;; Hook the move and awake callbacks
-  ;; Awake works great for playing in the Unity Editor, but not in standalone Mac game
+  ;; Awake works great for playing in the Unity Editor, but not in standalone Mac game:
   (hook+ (first (objects-named "Startup")) :awake #'minimal.core/game-startup)
   ;; Hook the :start for standalone.
   ;; Per Ramsey Nasser, "we do funky things with awake that might get in the way of user code"
-  (hook+ (first (objects-named "Startup")) :start #'minimal.core/game-startup)
-  (hook+ (first (objects-named "Startup")) :update #'minimal.core/move-when-arrow-pressed)
-  (hook+ (first (objects-named "Startup")) :late-update #'minimal.core/update-gui)
-  (hook+ (object-named "Startup") :late-update #'minimal.core/update-items)
-  (hook+ (object-named "Player") :late-update #'minimal.core/update-player)
   )
