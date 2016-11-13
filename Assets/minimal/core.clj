@@ -24,7 +24,7 @@
   (:import [UnityEngine Input KeyCode Camera Physics Time 
             UI.Text UI.ScrollRect
             Camera Resources Vector3 Quaternion Screen Canvas])
-  (:require [aiband.core :as ai]
+  (:require [aiband.core :as ai] ; :reload true - resets the game state when this is on
             [aiband.clrjvm :refer :all :reload true]
             [aiband.v2d :refer :all :reload true])
   (:use arcadia.core arcadia.linear #_aiband.core ))
@@ -156,7 +156,7 @@
 (defn log-mouse-enter
   "Logs a message to unity log whenever the mouse enters something."
   [go]
-  (arcadia.core/log "Mouse entered: " (. go name) (.. go transform x) (.. go transform y)))
+  (arcadia.core/log "Mouse entered: " (. go name) (.. go transform position x) (.. go transform position y)))
 
 (def last-mouse-location
   "[x y] coordinates of the last place the mouse hovered over."
@@ -166,17 +166,18 @@
   "Saves the mouse location in terms of Game X,Y location to an atom every
    time it changes. Called with an OnMouseEnter hook."
   [go]
-  (log-mouse-enter go)
+  #_(log-mouse-enter go)
   (reset! last-mouse-location
-    [(floor (.. go transform x) (.. go transform y))]))
+    [(int (floor (.. go transform position x))) 
+     (int (floor (.. go transform position y)))]))
 
 (defn update-mouseover-text
   "Updates the text box that describes what the mouse is hovering over.
    Floor -> Items -> Monsters -> You."
   [motgo] ; MouseOverText Game Object
-  (let [tile (get2d (:terrain (:level @ai/game-state)) @last-mouse-location)
+  (let [msg (ai/describe-at @last-mouse-location)
         txt (cmpt motgo Text)]
-    (set! (. txt text) (str tile))))
+    (set! (. txt text) msg)))
 
 
 ;; ----------------------------------------------------------------------------------
@@ -408,6 +409,9 @@
 (defn hook-late-update
   "Calls all our LateUpdate hooks in order with the expected game objects."
   [startup-go]
+  ;; Pointer moves arounda lot, so update this every frame.
+  (update-mouseover-text (object-named "MouseOverText"))
+  ;; Only update everything else when there's a change in state
   (when (has-game-state-changed?)
     (arcadia.core/log "Game state changed, running LateUpdate hooks, frame:" (:frame @gsc-cache))
     #_(add-text-and-scroll (object-named "MessageText") (str "\nPlaying turn " (:frame @gsc-cache)))
@@ -415,7 +419,6 @@
     (update-items startup-go)
     (update-player (object-named "Player"))
     (update-messages (object-named "MessageText"))
-    (update-mouseover-text (object-named "MouseOverText"))
     ))
 
 (defn hook-update

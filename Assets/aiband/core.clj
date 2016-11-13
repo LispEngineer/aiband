@@ -272,3 +272,27 @@
   "The current full state of the Aiband game right now."
   (atom (create-game)))
 
+
+;; Description -------------------------------------------------------------
+
+(defn tile->name
+  "Returns human readable tile name."
+  [tile]
+  (case tile
+    :rock ""
+    :floor "Floor"
+    :wall "Wall"
+    :else "Unknown"))
+
+(defn describe-at
+  "Returns a single-line string describing what the player knows about
+   the location at the specified [x y] coordinates."
+  [[x y :as coord]]
+  (let [tile (get2d (:terrain (:level @game-state)) coord)
+        player-coord [(:x (:player @game-state)) (:y (:player @game-state))]
+        player-text (if (= coord player-coord) ", You" "")]
+    (cond
+      (= tile :rock) ""
+      ;; TODO: ITEMS
+      :else (str coord " - " (tile->name tile) player-text))))
+
