@@ -119,10 +119,10 @@
 
 (def min-items
   "Minimum number of random items per level"
-  15)
+  50) ;15)
 (def max-items
   "Maximum number of random items per level"
-  50)
+  250) ;50)
 
 ;;; FIXME: Make the representation of items:
 ;;; {[x y] [{item} ...] [x y] [{item} ...]}
@@ -291,11 +291,18 @@
   "Returns a single-line string describing what the player knows about
    the location at the specified [x y] coordinates."
   [[x y :as coord]]
-  (let [tile (get2d (:terrain (:level @game-state)) coord)
-        player-coord [(:x (:player @game-state)) (:y (:player @game-state))]
-        player-text (if (= coord player-coord) ", You" "")]
+  (let [gs @game-state
+        tile (get2d (:terrain (:level gs)) coord)
+        player-coord [(:x (:player gs)) (:y (:player gs))]
+        player-text (if (= coord player-coord) ", You" "")
+        items (get (:entities (:level gs)) coord)
+        item-names (map #(i/item-type->name (:item-type %)) items)
+        item-str1 (apply str (interpose ", " item-names))
+        item-str (if (zero? (count item-str1))
+                     ""
+                     (str ", " item-str1))]
     (cond
       (= tile :rock) ""
       ;; TODO: ITEMS
-      :else (str coord " - " (tile->name tile) player-text))))
+      :else (str coord " - " (tile->name tile) item-str player-text))))
 

@@ -131,6 +131,14 @@
 
 ;; ITEMS ----------------------------------------------------------------------
 
+(defn item-type->name
+  "Returns the human-readable version of any :item-type."
+  [item-type]
+  (case item-type
+    :amulet "Amulet"
+    :ring   "Ring"
+    (str "Unknown: " item-type)))
+
 (defn create-item
   "Creates a new item with the specified :item-type."
   [item-type]
