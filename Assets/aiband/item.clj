@@ -68,6 +68,57 @@
   [elm coord entity]
   (assoc elm coord (conjv (get elm coord) entity)))
 
+(defn find-entity
+  "Finds an entity by ID in the entity-location-map. Returns
+   nil if not found, or a vector [[x y] {entity}] if it is found.
+   You can pass in a number (which will be searched for the ID) or
+   an entity which will have its ID matched."
+  [elm entity-id]
+  (let [id (cond
+             (number? entity-id) entity-id
+             :else (:id entity-id))]
+    ;; Take the first coordinate that has any entities with the ID
+    (first
+      ;; Filter out any coords without any found entities
+      (filter
+        (fn [[coord entities]] entities)
+        ;; Find all coords that have an item with this id
+        (map (fn [[coord entities]]
+                [coord (first (filter #(= id (:id %)) entities))])
+             elm)))))
+
+(defn remove-entity
+  "Removes all entities from the entity-location-map that have the
+   specified ID. Returns the new entity-location-map. This may lead
+   to some coordinates in the map having no entities; those are NOT
+   removed from the map currently.
+   You can pass in a number (which will be searched for the ID) or
+   an entity which will have its ID matched."
+  [elm entity-id]
+  (let [id (cond
+             (number? entity-id) entity-id
+             :else (:id entity-id))]
+    (if (nil? (find-entity elm id))
+      ;; If it's not in the elm, return the elm unchanged.
+      ;; This is to prevent unnecessary changes to the map.
+      ;; Not very efficient, but oh well.
+      elm
+      ;; Otherwise, go through the full map and remove any
+      ;; mentions of this ID.
+      (into {}
+        (map (fn [[coord entities]]
+                [coord (filterv #(not= id (:id %)) entities)])
+             elm)))))
+
+(defn all-entities
+  "Returns all entities as a sequence of [[x y] {entity}] forms."
+  [elm]
+  (apply concat
+    (map 
+      (fn [[coord entities]]
+        (map (fn [entity] [coord entity]) entities))
+      elm)))
+
 
 
 ;; ITEMS ----------------------------------------------------------------------
