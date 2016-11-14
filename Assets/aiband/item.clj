@@ -132,7 +132,13 @@
 ;; ITEMS ----------------------------------------------------------------------
 
 (defn create-item
-  "Creates a new item with the specified type."
+  "Creates a new item with the specified :item-type."
   [item-type]
   (assoc (create-entity :item) :item-type item-type))
 
+(defn all-items
+  "Returns all items as a sequence of [[x y] {item-entity}] forms."
+  [elm]
+  (filter
+    (fn [[coord entity]] (= (:type entity) :item))
+    (all-entities elm)))

@@ -26,7 +26,8 @@
             Camera Resources Vector3 Quaternion Screen Canvas])
   (:require [aiband.core :as ai] ; :reload true - resets the game state when this is on
             [aiband.clrjvm :refer :all :reload true]
-            [aiband.v2d :refer :all :reload true])
+            [aiband.v2d :refer :all :reload true]
+            [aiband.item :as i :reload true])
   (:use arcadia.core arcadia.linear #_aiband.core ))
 
 
@@ -204,7 +205,7 @@
 ;; TODO: Only do anything in here if the state is changed from the last
 ;; time we did something in here.
 (defn update-gui
-  "HOOK: Updates the Unity GUI items with latest data."
+  "HOOK: Updates the Unity GUI information/stats box with latest data."
   [o]
   (let [go-hp      (object-named "HPData") ; FIXME: Magic string
         go-hp-text (cmpt go-hp Text)
@@ -252,7 +253,7 @@
 (def item-tag "Unity tag for all item objects" "item")
 
 (defn item-prefab
-  "Converts an item keyword into a Prefab Tile name"
+  "Converts an item-type keyword into a Prefab Tile name"
   [i]
   (cond
     (= i :ring)  "ItemRing"
@@ -267,18 +268,18 @@
       (arcadia.core/destroy o))))
 
 (defn add-items
-  "Adds GameObjects from Prefabs for all items in the game"
+  "Adds GameObjects from Prefabs for all item entities in the game"
   []
   ;; First create a container
   ;; Then create the items
   (let [cgo (GameObject. "Items")  ; A Unity GameObject that will hold our other Item GOs
         ct  (. cgo transform) ; The transform of the above
-        items (:items (:level @ai/game-state))]
+        items (i/all-items (:entities (:level @ai/game-state)))]
     #_(arcadia.core/log "Adding items:" items)
     (set! (. cgo tag) item-tag)
-    (doseq [item items]
-      (let [igo (create-thing (item-prefab (:type item)) (arcadia.linear/v3 (:x item) (:y item) 0.0))]
-        ;; Do nothing
+    (doseq [[[x y] entity] items]
+      (let [igo (create-thing (item-prefab (:item-type entity)) (arcadia.linear/v3 x y 0.0))]
+        ;; Add this to our items parent game object
         (. (. igo transform) SetParent ct)
         ))
     #_(arcadia.core/log "Item addition complete") ))
