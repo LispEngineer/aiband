@@ -8,7 +8,8 @@
 
 (ns aiband.core
   (:require [aiband.v2d :refer :all :reload true]
-            [aiband.bsp :as bsp :reload true]))
+            [aiband.bsp :as bsp :reload true]
+            [aiband.item :as i :reload true]))
 
 ;; Load our module into the REPL
 #_(require '[aiband.core :refer :all :reload true])
@@ -128,20 +129,23 @@
 
 (defn create-random-item-in
   "Creates a random item that is on a floor space of the
-   specified level. NOT PURE."
+   specified level. Returns as [[x y] entity]. NOT PURE."
   [lv]
   (let [[x y] (rand-location-t lv :floor)
         i-type (get [:ring :amulet] (rand-int 2))]
-    {:type i-type :x x :y y}))
+    [[x y] (i/create-item i-type)]))
 
 (defn create-items-in
   "Creates some random items in this level on floor spaces.
+   Returns the level with the entities added.
    NOT PURE."
   [lv]
-  (into [] 
+  (reduce
+    (fn [lv [coord entity]]
+      (assoc lv :entities (i/add-entity (:entities lv) coord entity)))
+    lv
     (take (+ min-items (rand-int (- max-items min-items -1)))
       (repeatedly (fn [] (create-random-item-in lv))))))
-
 
 (defn create-level-from-string
   "Creates an Aiband level from a vector of strings.
@@ -151,10 +155,9 @@
   (let [max-y (count lvstr)
         max-x (count (first lvstr))
         lev (convert-level-from-string lvstr)
-        lv-ni {:width max-x :height max-y :terrain lev :items []} ; level with no items
-        itms (create-items-in lv-ni)]
-    (assoc lv-ni :items itms)))
-
+        lv-ni {:width max-x :height max-y 
+               :terrain lev :entities (i/create-entity-location-map)}] ; level with no items
+    (create-items-in lv-ni)))
 
 
 (defn create-player

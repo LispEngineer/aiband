@@ -36,14 +36,14 @@
   "Gets the next unique Entity ID."
   []
   (dosync
-    (swap! last-item-id inc)))
+    (swap! last-entity-id inc)))
 
 (defn create-entity
   "Creates an entity by assigning it a (unique) ID and the type.
    This is simply a map with :id and :type fields. All other relevant
    information about the item can be assoc'd in later."
   [entity-type]
-  {:id (get-item-id) :type entity-type})
+  {:id (get-entity-id) :type entity-type})
 
 ;; Entity location map:
 ;; {[x y] [entities...]}
@@ -110,6 +110,13 @@
                 [coord (filterv #(not= id (:id %)) entities)])
              elm)))))
 
+(defn update-entity
+  "Removes any other copies of this entity from this entity-location-map
+   and adds it back at the specified location."
+   ;; TODO: If location is null, updates the item in place?
+  [elm coord entity]
+  (add-entity (remove-entity elm entity) coord entity))
+
 (defn all-entities
   "Returns all entities as a sequence of [[x y] {entity}] forms."
   [elm]
@@ -119,7 +126,8 @@
         (map (fn [entity] [coord entity]) entities))
       elm)))
 
-
+;; TODO:
+;; 1. Function that updates an entity in the elm "in place" with an updater function?
 
 ;; ITEMS ----------------------------------------------------------------------
 
