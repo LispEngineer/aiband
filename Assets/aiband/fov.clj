@@ -12,6 +12,9 @@
 ;; you can see that distance in a square around you.
 ;; Distance 1 is a 3x3 square, Distance 2 is a 5x5 square, etc.
 ;; (Distance * 2 + 1) ^ 2.
+;; This is the Chebyshev distance, since movement on diagonals is
+;; treated as on horiz/vertical.
+;; https://en.wikipedia.org/wiki/Chebyshev_distance
 ;;
 ;; We calculate the edges of the square, and then for each edge
 ;; coordinate, we calculate all the points from your current point
@@ -51,58 +54,6 @@
         (map (fn [y] [start-x y]) (range (inc start-y) end-y))
         ;; Right of perimeter
         (map (fn [y] [end-x y]) (range (inc start-y) end-y))))))
-
-;; https://github.com/jackschaedler/goya/blob/master/src/cljs/goya/components/bresenham.cljs
-#_(defn bresenham [x0 y0 x1 y1]
-  (let [len-x (js/Math.abs (- x0 x1))
-        len-y (js/Math.abs (- y0 y1))
-        is-steep (> len-y len-x)]
-    (let [[x0 y0 x1 y1] (if is-steep [y0 x0 y1 x1] [x0 y0 x1 y1])]
-      (let [[x0 y0 x1 y1] (if (> x0 x1) [x1 y1 x0 y0] [x0 y0 x1 y1])]
-        (let [delta-x (- x1 x0)
-              delta-y (js/Math.abs (- y0 y1))
-              y-step (if (< y0 y1) 1 -1)]
-          (loop [x x0
-                 y y0
-                 error (js/Math.floor (/ delta-x 2))
-                 pixels (if is-steep [[y x]] [[x y]])]
-            (if (> x x1)
-              pixels
-              (if (< error delta-y)
-                (recur (inc x)
-                       (+ y y-step)
-                       (+ error (- delta-x delta-y))
-                       (if is-steep (conj pixels [y x]) (conj pixels [x y])))
-                (recur (inc x)
-                       y
-                       (- error delta-y)
-                       (if is-steep (conj pixels [y x]) (conj pixels [x y]))
-                       )))))))))
-
-;; Based on code here:
-;; https://github.com/jackschaedler/goya/blob/master/src/cljs/goya/components/bresenham.cljs
-;; This gives a less symmetric line, I feel.
-(defn origin-line'
-  "Gives a seq of [x y] coordinates, including the origin, from [0 0] to
-   the provided coordinate, which must be in the first octant
-   (y <= x, x > 0, y > 0)."
-  [[to-x to-y]]
-  (loop [x 0 y 0
-         error (floor (/ to-x 2))
-         coords []] ; Our return value
-    (if (> x to-x)
-      ;; We're done
-      coords
-      ;; Pick a Y coord per error and draw that pixel
-      (if (< error to-y)
-        ;; Go up one in Y next time
-        (recur (inc x) (inc y)
-          (+ error (- to-x to-y))
-          (conj coords [x y]))
-        ;; Stay at Y the next time
-        (recur (inc x) y
-          (- error to-y)
-          (conj coords [x y]))))))
 
 ;; Based on algorithm here:
 ;; https://www.cs.drexel.edu/~introcs/Fa11/notes/08.3_MoreGraphics/Bresenham.html?CurrentSlide=4
