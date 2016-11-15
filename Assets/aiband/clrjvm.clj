@@ -40,3 +40,11 @@
     :clj  (eval `(java.lang.Math/floor ~v))
     :cljr (eval `(System.Math/Floor (double ~v)))
     nil))
+
+(defn abs
+  "Absolute value function in math"
+  [v]
+  (case platform
+    :clj  (eval `(java.lang.Math/abs ~v))
+    :cljr (eval `(System.Math/Abs ~v))
+    nil))
