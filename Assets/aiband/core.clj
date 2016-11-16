@@ -9,31 +9,54 @@
 (ns aiband.core
   (:require [aiband.v2d :refer :all :reload true]
             [aiband.bsp :as bsp :reload true]
-            [aiband.item :as i :reload true]))
+            [aiband.item :as i :reload true]
+            [aiband.fov :as fov :reload true]
+            [clojure.set :as set]))
 
 ;; Load our module into the REPL
 #_(require '[aiband.core :refer :all :reload true])
 #_(in-ns 'aiband.core)
 
 ;; Forward definitions
-(declare create-game game-state add-message-to-game)
+(declare create-game game-state add-message-to-game update-level-visibility)
+
+
+;; Configuration --------------------------------------------------------------
+
+;; TODO: Make these items be as a %age of level area? Room area in the level?
+(def min-items
+  "Minimum number of random items per level"
+  50) ;15)
+
+(def max-items
+  "Maximum number of random items per level"
+  250) ;50)
+
+(def see-dist
+  "How far the player can see in a straight line, using
+   Chebyshev distance."
+  4)
+
+
+;; ----------------------------------------------------------------------------
 
 (def level-map-string
   "Fixed string with the map of a level. Dots are floor,
    # are wall, and spaces are rock. We don't use any walls
    as we will post-process this to add in the walls."
    [
-    ;01234567890124
-    "                                                                                                                                "
-    "      ....              .....................             ......................                      ......                    "
-    "  ........              .                   .             ....                 .                     ........                   "
-    "  ...........           .                   .             ....                 .                     ........                   "
-    "  ...........           .   ........        .             ....                 .                 ................               "
-    " ...................................        .              .                   .                 .......................        "
-    " ............      .        ........        .              .                ..............       ................      .        "
-    "                   .        ........        .              .                .            .         .                   .        "
-    "                   .        ........        ................                .            ...........                   .        "
-    "                   .        ........                .               ..............                                     .        "
+        ;00000000001111111111222222222233333333334444444444
+        ;01234567890123456789012345678901234567890123456789
+    #_0 "                                                                                                                                "
+    #_1 "      ....              .....................             ......................                      ......                    "
+    #_2 "  ........              .                   .             ....                 .                     ........                   "
+    #_3 "  ...........           .                   .             ....                 .                     ........                   "
+    #_4 "  ...........           .   ........        .             ....                 .                 ................               "
+    #_5 " ...................................        .              .                   .                 .......................        "
+    #_6 " ............      .        ........        .              .                ..............       ................      .        "
+    #_7 "                   .        ........        .              .                .            .         .                   .        "
+    #_8 "                   .        ........        ................                .            ...........                   .        "
+    #_9 "                   .        ........                .               ..............                                     .        "
     "                   .                                .              ...............                ......................        "
     "                   .                                .             ................                .                             "
     "                   .                                .            .................                .                             "
@@ -117,13 +140,6 @@
               :wall t)))
       lvstr)))
 
-(def min-items
-  "Minimum number of random items per level"
-  50) ;15)
-(def max-items
-  "Maximum number of random items per level"
-  250) ;50)
-
 ;;; FIXME: Make the representation of items:
 ;;; {[x y] [{item} ...] [x y] [{item} ...]}
 
@@ -156,7 +172,18 @@
         max-x (count (first lvstr))
         lev (convert-level-from-string lvstr)
         lv-ni {:width max-x :height max-y 
-               :terrain lev :entities (i/create-entity-location-map)}] ; level with no items
+               ;; What coordinates are currently visible to the player
+               ;; (usually calculated from LOS, but maybe there are other
+               ;; ways to see parts of the map)
+               :visible #{} 
+               ;; What coordinates have been seen by the player so we can
+               ;; draw them (grayed out, if not visible) so the player remembers
+               ;; them?
+               :seen #{}
+               ;; What is the 2D terrain map? (floors, walls)
+               :terrain lev 
+               ;; What items are in the level {coord [items]}?
+               :entities (i/create-entity-location-map)}] ; level with no items
     (create-items-in lv-ni)))
 
 
@@ -266,9 +293,12 @@
 (defn create-game
   "Creates a new game object with a player."
   []
-  (let [level (create-level)]
-    {:level level
-     :player (create-player level)
+  (let [level (create-level)
+        player (create-player level)
+        ;; Update what the player can see from the start
+        level-vis (update-level-visibility level [(:x player) (:y player)] see-dist)]
+    {:level level-vis
+     :player player
      :messages (create-messages)}))
 
 (def game-state
@@ -305,4 +335,55 @@
       (= tile :rock) ""
       ;; TODO: ITEMS
       :else (str coord " - " (tile->name tile) item-str player-text))))
+
+;; Field of view -------------------------------------------------------------
+
+(defn terrain->transparent?
+  "Tells us if you can see through this terrain or not."
+  [terr]
+  (case terr
+    :floor true
+    :wall false
+    :rock false ; Should never happen
+    :else false)) ; Should never happen?
+
+(defn visible-ray
+  "Returns a set of all coordinates from the input seq (probably vector)
+   until (and including) finding one that blocks the sight further."
+  ;; External interface
+  ([lv ray]
+    (visible-ray (:terrain lv) ray #{}))
+  ;; Internal implementation
+  ([terr ray acc]
+    (cond
+      ;; No more to look at
+      (empty? ray)
+      acc
+      ;; We can see through this one
+      (terrain->transparent? (get2d terr (first ray)))
+      (visible-ray terr (rest ray) (conj acc (first ray)))
+      ;; We can't see through this one, so add it and we're done
+      :else
+      (conj acc (first ray)))))
+
+(defn visible-coords
+  "Calculates all the squares that can be seen from the specified
+   coordinate out to the specified distance in the provided level."
+  [lv coord dist]
+  (let [rays (fov/los-rays coord dist)]
+    (apply set/union (map #(visible-ray lv %) rays))))
+
+(defn update-level-visibility
+  "Returns a new level with the seen and visible information updated
+   for a player who is standing at the specified [x y] coords and who
+   can see 'dist' far away."
+  [lv coord dist]
+  (let [new-vis (visible-coords lv coord dist)
+        new-seen (set/union (:seen lv) new-vis)]
+    (if (and (= new-vis (:visible lv))
+             (= new-seen (:seen lv)))
+      ;; Nothing changed, so return the same object
+      lv
+      ;; Something changed, so return a new object with updated seen/visible
+      (assoc lv :seen new-seen :visible new-vis))))
 
