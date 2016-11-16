@@ -304,9 +304,10 @@
      :player player
      :messages (create-messages)}))
 
-(def game-state
-  "The current full state of the Aiband game right now."
-  (atom nil)) ; (create-game)))
+;; The current full state of the Aiband game right now EXCEPT for
+;; the random number generator seed.
+;; TODO: Add a doc-string to game-state
+(defonce game-state (atom nil))
 
 (defn initialize-game
   "Initializes a game with new, random state. We don't do this in the
