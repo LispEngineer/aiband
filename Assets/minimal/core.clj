@@ -27,8 +27,9 @@
   (:require [aiband.core :as ai] ; :reload true - resets the game state when this is on
             [aiband.clrjvm :refer :all :reload true]
             [aiband.v2d :refer :all :reload true]
-            [aiband.item :as i :reload true])
-  (:use arcadia.core arcadia.linear #_aiband.core ))
+            [aiband.item :as i :reload true]
+            [clojure.set :as set])
+  (:use arcadia.core arcadia.linear))
 
 
 ;; HELPERS ------------------------------------------------------------------------------
@@ -307,7 +308,7 @@
 ;; This is a temporary way for me to visualize the visibility within
 ;; the actual Unity engine
 
-(def visibility-tag "Unity tag for all visibility objects" "item")
+(def visibility-tag "Unity tag for all visibility objects" "vis")
 
 (defn add-visibility
   "Adds GameObjects from Prefabs for all visibility entities in the level"
@@ -317,7 +318,7 @@
   (let [cgo (GameObject. "Visibility")  ; A Unity GameObject that will hold our other Item GOs
         ct  (. cgo transform) ; The transform of the above
         vis (:visible (:level @ai/game-state))]
-    (arcadia.core/log "Adding visibility:" vis)
+    #_(arcadia.core/log "Adding visibility:" vis)
     (set! (. cgo tag) visibility-tag)
     (doseq [[x y] vis]
       (let [vgo (instantiate-prefab "Visibility" (arcadia.linear/v3 x y 0.0))]
@@ -325,7 +326,7 @@
         (. (. vgo transform) SetParent ct)
         (set! (. vgo tag) visibility-tag)
         ))
-    (arcadia.core/log "Visibility addition complete") ))
+    #_(arcadia.core/log "Visibility addition complete") ))
 
 
 (defn update-visibility
@@ -333,6 +334,38 @@
   [o]
   (remove-tagged visibility-tag)
   (add-visibility))
+
+
+
+(def seen-tag "Unity tag for all seen objects" "seen")
+
+;; Totally not DRY
+(defn add-seen
+  "Adds GameObjects from Prefabs for all seen entities in the level"
+  []
+  ;; First create a container
+  ;; Then create the items
+  (let [cgo (GameObject. "Seen")  ; A Unity GameObject that will hold our other Item GOs
+        ct  (. cgo transform) ; The transform of the above
+        locs (set/difference 
+               (:seen (:level @ai/game-state))
+               (:visible (:level @ai/game-state)))]
+    (arcadia.core/log "Adding seen:" locs)
+    (set! (. cgo tag) seen-tag)
+    (doseq [[x y] locs]
+      (let [vgo (instantiate-prefab "Seen" (arcadia.linear/v3 x y 0.0))]
+        ;; Add this to our items parent game object
+        (. (. vgo transform) SetParent ct)
+        (set! (. vgo tag) seen-tag)
+        ))
+    (arcadia.core/log "Seen addition complete") ))
+
+
+(defn update-seen
+  "HOOK: Updates the drawing of all seen overlays in the game."
+  [o]
+  (remove-tagged seen-tag)
+  (add-seen))
 
 
 
@@ -459,6 +492,7 @@
     (update-gui startup-go)
     (update-items startup-go)
     (update-visibility startup-go)
+    (update-seen startup-go)
     (update-player (object-named "Player"))
     (update-messages (object-named "MessageText"))
     ))
