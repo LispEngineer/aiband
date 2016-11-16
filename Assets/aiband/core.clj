@@ -227,9 +227,12 @@
       (not= (get2d t nx ny) :floor) [nil (str "Invalid terrain: " nx "," ny)]
       ;; Otherwise, move the player.
       :else
-        [(-> game
-           (assoc-in ,,, [:player :x] nx)
-           (assoc-in ,,, [:player :y] ny)) ""])))
+      [(-> game
+         (assoc-in ,,, [:player :x] nx)
+         (assoc-in ,,, [:player :y] ny)
+         ;; Update visibility
+         (assoc ,,, :level (update-level-visibility (:level game) [nx ny] see-dist)))
+       ""])))
 
 
 (defn update-game!
@@ -303,7 +306,14 @@
 
 (def game-state
   "The current full state of the Aiband game right now."
-  (atom (create-game)))
+  (atom nil)) ; (create-game)))
+
+(defn initialize-game
+  "Initializes a game with new, random state. We don't do this in the
+   'game-state' def because having it be called explicitly allows us to
+   reload this file in REPL without modifying the game state."
+  []
+  (reset! game-state (create-game)))
 
 
 ;; Description -------------------------------------------------------------

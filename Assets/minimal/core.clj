@@ -342,6 +342,7 @@
   [o]
   (arcadia.core/log "Game startup")
   (camera-setup)
+  (ai/initialize-game)
   (let [terrain (:terrain (:level @ai/game-state))
         tgo (GameObject. "Terrain")  ; A Unity GameObject that will hold our other Terrain GOs
         tt  (. tgo transform)] ; The transform of the above
