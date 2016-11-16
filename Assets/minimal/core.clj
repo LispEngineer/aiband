@@ -34,7 +34,7 @@
 ;; HELPERS ------------------------------------------------------------------------------
 
 
-(defn create-thing
+(defn instantiate-prefab
   "name - a string. location - a Vector3.
    Loads a prefab from Assets/Resources and instantiates it at the specified location."
   [name location]
@@ -250,6 +250,9 @@
     ))
 
 
+;; ITEMS -------------------------------------------------------------------
+
+
 (def item-tag "Unity tag for all item objects" "item")
 
 (defn item-prefab
@@ -260,10 +263,10 @@
     (= i :amulet) "ItemAmulet"
     :else        "ItemUnknown"))
 
-(defn remove-items
-  "Removes all objects with the specified tag from the scene"
-  []
-  (let [tos (objects-tagged item-tag)]
+(defn remove-tagged
+  "Removes all Unity Game Objects with the specified tag from the scene"
+  [tag]
+  (let [tos (objects-tagged tag)]
     (doseq [o tos]
       (arcadia.core/destroy o))))
 
@@ -278,7 +281,7 @@
     #_(arcadia.core/log "Adding items:" items)
     (set! (. cgo tag) item-tag)
     (doseq [[[x y] entity] items]
-      (let [igo (create-thing (item-prefab (:item-type entity)) (arcadia.linear/v3 x y 0.0))]
+      (let [igo (instantiate-prefab (item-prefab (:item-type entity)) (arcadia.linear/v3 x y 0.0))]
         ;; Add this to our items parent game object
         (. (. igo transform) SetParent ct)
         ))
@@ -293,11 +296,47 @@
   "HOOK: Updates the drawing of all items in the game."
   [o]
   #_(arcadia.core/log "Removing items")
-  (remove-items)
+  (remove-tagged item-tag)
   #_(arcadia.core/log "Adding items")
   (add-items)
   #_(arcadia.core/log "Item manipulation complete") )
 
+
+;; VISIBILITY -------------------------------------------------------------------
+
+;; This is a temporary way for me to visualize the visibility within
+;; the actual Unity engine
+
+(def visibility-tag "Unity tag for all visibility objects" "item")
+
+(defn add-visibility
+  "Adds GameObjects from Prefabs for all visibility entities in the level"
+  []
+  ;; First create a container
+  ;; Then create the items
+  (let [cgo (GameObject. "Visibility")  ; A Unity GameObject that will hold our other Item GOs
+        ct  (. cgo transform) ; The transform of the above
+        vis (:visible (:level @ai/game-state))]
+    (arcadia.core/log "Adding visibility:" vis)
+    (set! (. cgo tag) visibility-tag)
+    (doseq [[x y] vis]
+      (let [vgo (instantiate-prefab "Visibility" (arcadia.linear/v3 x y 0.0))]
+        ;; Add this to our items parent game object
+        (. (. vgo transform) SetParent ct)
+        (set! (. vgo tag) visibility-tag)
+        ))
+    (arcadia.core/log "Visibility addition complete") ))
+
+
+(defn update-visibility
+  "HOOK: Updates the drawing of all visibility overlays in the game."
+  [o]
+  (remove-tagged visibility-tag)
+  (add-visibility))
+
+
+
+;; ------------------------------------------------------------------------
         
 
 (defn terrain-tile
@@ -352,7 +391,7 @@
     (doseq [[y row] (map list (range) terrain)]
       #_(arcadia.core/log "Starting terrain row" y)
       (doseq [[x t] (map list (range) row)]
-        (let [go (create-thing (terrain-tile t) (arcadia.linear/v3 x y 0.0))]
+        (let [go (instantiate-prefab (terrain-tile t) (arcadia.linear/v3 x y 0.0))]
           ;; Set our name
           (set! (. go name) (str "terrain-" x "," y))
           ;; We have all our floor items save the fact that the mouse is there.
@@ -419,6 +458,7 @@
     #_(add-text-and-scroll (object-named "MessageText") (str "\nPlaying turn " (:frame @gsc-cache)))
     (update-gui startup-go)
     (update-items startup-go)
+    (update-visibility startup-go)
     (update-player (object-named "Player"))
     (update-messages (object-named "MessageText"))
     ))
