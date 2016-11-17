@@ -21,7 +21,7 @@ GameObject:
   - 4: {fileID: 4000011431370072}
   - 212: {fileID: 212000013342171956}
   m_Layer: 0
-  m_Name: Visibility
+  m_Name: Unseen
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -69,7 +69,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 464475419
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: b8d77a165cae6416188c86f429ad2e0e, type: 3}
-  m_Color: {r: 1, g: 1, b: 0.341, a: 0.37254903}
+  m_Sprite: {fileID: 21300000, guid: 40cec7458d56b4665b5e80fec1823e81, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

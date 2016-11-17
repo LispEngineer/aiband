@@ -55,8 +55,8 @@
   [frame gs changed]
   {:frame frame :gs gs :changed changed})
 
-(def gsc-cache
-  "Our most recent game state changed cache."
+(defonce gsc-cache
+  ;;;; "Our most recent game state changed cache."
   (atom (make-game-state-cache -1 nil false)))
 
 (defn has-game-state-changed?
@@ -160,8 +160,8 @@
   [go]
   (arcadia.core/log "Mouse entered: " (. go name) (.. go transform position x) (.. go transform position y)))
 
-(def last-mouse-location
-  "[x y] coordinates of the last place the mouse hovered over."
+(defonce last-mouse-location
+  ;;;; "[x y] coordinates of the last place the mouse hovered over."
   (atom [0 0]))
 
 (defn save-mouse-location
@@ -321,7 +321,7 @@
     #_(arcadia.core/log "Adding visibility:" vis)
     (set! (. cgo tag) visibility-tag)
     (doseq [[x y] vis]
-      (let [vgo (instantiate-prefab "Visibility" (arcadia.linear/v3 x y 0.0))]
+      (let [vgo (instantiate-prefab "Visible" (arcadia.linear/v3 x y 0.0))]
         ;; Add this to our items parent game object
         (. (. vgo transform) SetParent ct)
         (set! (. vgo tag) visibility-tag)
@@ -366,6 +366,93 @@
   [o]
   (remove-tagged seen-tag)
   (add-seen))
+
+
+;; Visibility layer -------------------------------------------------------
+
+;; We create a set of Game Objects which overlay the entire map.
+;; They start as "Unseen" - which looks just like the background.
+;; As they are revealed, they become "Visible" (which is completely
+;; transparent) and then they become "Seen" after they are no longer
+;; "Visible", which looks like a dimmed map tile.
+
+(def visibility-parent-name 
+  "The name of the (dynamically created) game object that holds all our
+   Unity GOs that cover unseen and previously seen map tiles."
+  "Visibility")
+
+(defn visibility-tile-name
+  "The name of the visibility tile at the specified location"
+  [x y]
+  (str "visibility-" x "," y))
+
+;; Our saved visibility information
+(defonce last-visibility
+  (atom {:seen #{} :visible #{}}))
+
+(defn initialize-visibility-layer
+  "Creates all opaque background tiles over the entire map."
+  [w h]
+        ;; A Unity GameObject that will hold our other Terrain GOs
+  (let [pgo (GameObject. visibility-parent-name)
+        ;; Transform object of the above
+        pt  (. pgo transform)]
+    ;; Iterate over the 2D vector including indices
+    (doseq [y (range 0 h)
+            x (range 0 w)]
+      (let [go (instantiate-prefab "Unseen" (arcadia.linear/v3 x y 0.0))]
+        ;; Set our name so we get it later
+        (set! (. go name) (visibility-tile-name x y))
+        ;; Put it in the Visibility parent holder
+        ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
+        (. (. go transform) SetParent pt)))))
+
+(defn vtype->prefab
+  "Gets the prefab name for the visibility type."
+  [vtype]
+  (case vtype
+    :unseen "Unseen"
+    :seen "Seen"
+    :visible "Visible"
+    "Unknown"))
+
+(defn set-visibility-tile
+  "Sets the specified coordinate's visibility tile to the specified
+   visibility type :seen or :visible. Does this by removing the tile
+   that was there and then instantiating a new one there."
+  ;; TODO: Figure out how to swap the 
+  [[x y :as coord] vtype]
+  (let [pgo (object-named visibility-parent-name)
+        pt  (. pgo transform)
+        ;; Our old visibility game object
+        ovgo (object-named (visibility-tile-name x y)) ; old vis game obj
+        ;; Our new visibility game object
+        nvgo (instantiate-prefab (vtype->prefab vtype) (arcadia.linear/v3 x y 0.0))]
+    ;; First, get rid of our old GO
+    (arcadia.core/destroy ovgo)
+    ;; Now set up our new visibility game object properly
+    (set! (. nvgo name) (visibility-tile-name x y))
+    (. (. nvgo transform) SetParent pt)))
+
+;; n-vis - o-vis: Make these newly visible tiles visible
+;; o-vis - n-vis: Make these no longer visible tiles seen
+;; n-seen - o-seen - n-vis: Make these tiles seen - this should rarely happen
+
+(defn update-vis ;; TODO: Rename me to update-visibility
+  "Updates all tiles on the visibility layer by diffing the last
+   updated state and the current state."
+  [n-seen n-vis]
+  (let [{o-seen :seen o-vis :visible} @last-visibility
+        make-vis (set/difference n-vis o-vis)
+        make-seen1 (set/difference o-vis n-vis)
+        make-seen2 (set/difference n-seen o-seen n-vis)]
+    (arcadia.core/log "Newly visible: " make-vis)
+    (arcadia.core/log "Now seen 1: " make-seen1)
+    (arcadia.core/log "Now seen 2: " make-seen2)
+    ;; XXX: CODE ME
+    ;; Update the tiles in these three sets
+    ;; Now that our GameObject state is updated... Update our seen cache
+    (reset! last-visibility {:seen n-seen :visible n-vis})))
 
 
 
@@ -435,14 +522,17 @@
           ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
           (. (. go transform) SetParent tt)
           #_(arcadia.core/log "Created" x y t go) ))
-      #_(arcadia.core/log "Finished terrain row" y) ))
+      #_(arcadia.core/log "Finished terrain row" y) )
+    ;; TODO: Call initialize-visibility-layer
+    )
+
   (arcadia.core/log "Game startup complete"))
 
 ;; Messages ---------------------------------------------------------------------
 
-(def last-message-shown
-  "What the last message number from @ai/game-state :messages is that
-   we have added to our text box."
+(defonce last-message-shown
+  ;;;; "What the last message number from @ai/game-state :messages is that
+  ;;;;  we have added to our text box."
   (atom 0))
 
 (defn update-messages
@@ -452,8 +542,8 @@
    reasonable length (1k messages?)."
   [mtgo] ;; Message Text Game Object
   (let [lm @last-message-shown
-        cm (get-in @ai/game-state [:messages :final])
-        im (get-in @ai/game-state [:messages :initial])
+        cm   (get-in @ai/game-state [:messages :final])
+        im   (get-in @ai/game-state [:messages :initial])
         msgs (get-in @ai/game-state [:messages :text])]
     (when (not= lm cm)
       ;; Update our messages
@@ -493,6 +583,8 @@
     (update-items startup-go)
     (update-visibility startup-go)
     (update-seen startup-go)
+    ;; Replacement for the above two
+    (update-vis (:seen (:level @ai/game-state)) (:visible (:level @ai/game-state)))
     (update-player (object-named "Player"))
     (update-messages (object-named "MessageText"))
     ))
