@@ -45,6 +45,9 @@ To install: (This assumes use of a Mac)
 
 # Next Steps
 
+0. Update the "Description" text to take into account what has been seen
+   and what is currently visible, and not to show information about unseen
+   areas.
 1. Modify Unity3D presentation of items not to destroy and recreate all the
    Item/Entity GameObjects every single update.
 2. Add GPLv3 with Attribution license once I figure out how to do that.
