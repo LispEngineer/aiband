@@ -39,6 +39,7 @@
   "name - a string. location - a Vector3.
    Loads a prefab from Assets/Resources and instantiates it at the specified location."
   [name location]
+  ;; TODO: Make a memoized Resources/Load
   (let [prefab (Resources/Load name)
         thing (UnityEngine.Object/Instantiate prefab location Quaternion/identity)]
     #_(arcadia.core/log thing)
@@ -304,13 +305,14 @@
     (arcadia.core/log "Adding items: " i-add)
     ;; Remove old items
     (doseq [[coord {i-id :id} :as item] i-remove]
-      (arcadia.core/log "Removing item ID: " i-id)
+      #_(arcadia.core/log "Removing item ID: " i-id)
       (arcadia.core/destroy (object-named (item-tile-name i-id))))
     ;; Add new items
     (doseq [[[x y] {i-id :id i-type :item-type}] i-add]
-      (arcadia.core/log "Adding item ID: " i-id ", type: " i-type)
+      #_(arcadia.core/log "Adding item ID: " i-id ", type: " i-type)
       (let [igo (instantiate-prefab (item-prefab i-type) (arcadia.linear/v3 x y 0.0))]
         ;; Add this to our items parent game object
+        (set! (. igo name) (item-tile-name i-id))
         (. (. igo transform) SetParent p-t)))
     ;; Now that our GameObject state is updated... Update our seen cache
     (reset! last-items n-items)))

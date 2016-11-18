@@ -334,6 +334,9 @@
   [[x y :as coord]]
   (let [gs @game-state
         tile (get2d (:terrain (:level gs)) coord)
+        loc-visible (contains? (:visible (:level gs)) coord)
+        seen-!vis   (set/difference (:seen (:level gs)) (:visible (:level gs)))
+        loc-seen    (contains? seen-!vis coord)
         player-coord [(:x (:player gs)) (:y (:player gs))]
         player-text (if (= coord player-coord) ", You" "")
         items (get (:entities (:level gs)) coord)
@@ -343,9 +346,17 @@
                      ""
                      (str ", " item-str1))]
     (cond
-      (= tile :rock) ""
-      ;; TODO: ITEMS
-      :else (str coord " - " (tile->name tile) item-str player-text))))
+      ;; User hasn't seen this place
+      (and (not loc-visible) (not loc-seen))
+      "Unknown"
+      ;; If for some reason he can see rock...
+      (= tile :rock) 
+      "Unknown"
+      ;; Otherwise show him what's there (or was there, if we track that)
+      :else 
+      (str ;; coord " - " 
+        (if loc-seen "Not visible, was: " "")
+        (tile->name tile) item-str player-text))))
 
 ;; Field of view -------------------------------------------------------------
 

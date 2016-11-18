@@ -45,18 +45,26 @@ To install: (This assumes use of a Mac)
 
 # Next Steps
 
-0. Update the "Description" text to take into account what has been seen
-   and what is currently visible, and not to show information about unseen
-   areas.
-1. Modify Unity3D presentation of items not to destroy and recreate all the
-   Item/Entity GameObjects every single update.
+1. Modify display to highlight the tile (if not unknown) over which the
+   pointer is, as it moves, to make it very clear which tile the description
+   box is showing.
 2. Add GPLv3 with Attribution license once I figure out how to do that.
+3. Put the random number seed into the game state and generate all numbers
+   off that.
+4. Rewrite all game state updates in a monadic style, including the use
+   of the state monad in the clojure standard (?) library here:
+   https://github.com/clojure/algo.monads/ (if it works in ClojureCLR).
+   This will make my life much easier and allow my Haskell skills to be
+   reused.
+5. Implement pick up items:
+   1. Get one or all the items in current location (to test getting)
+   2. Pop up a menu for which item to get if multiple are there
 
 # Unity Configuration
 
 ## Assets
 
-* `Resources` - Unity prefabs are here
+* `Resources` - Unity prefabs are here, which can be used with Resources/Load
 
 ## Scenes
 
