@@ -251,59 +251,69 @@
 
 ;; ITEMS -------------------------------------------------------------------
 
+;; Create a set of all items in the form [[x y] {entity-item}] from the
+;; level. Compare that to the previously shown items. Remove game objects
+;; for anything not still in the current set. Create game objects for anything
+;; new in the current set. Game objects should be named item-<id> where ID
+;; is the entity ID of that item.
 
 (def item-tag "Unity tag for all item objects" "item")
 
 (defn item-prefab
   "Converts an item-type keyword into a Prefab Tile name"
-  [i]
-  (cond
-    (= i :ring)  "ItemRing"
-    (= i :amulet) "ItemAmulet"
-    :else        "ItemUnknown"))
+  [i-type]
+  (case i-type
+    :ring   "ItemRing"
+    :amulet "ItemAmulet"
+            "ItemUnknown"))
 
-(defn remove-tagged
-  "Removes all Unity Game Objects with the specified tag from the scene"
-  [tag]
-  (let [tos (objects-tagged tag)]
-    (doseq [o tos]
-      (arcadia.core/destroy o))))
+(def item-parent-name 
+  "The name of the (dynamically created) game object that holds all our
+   Unity GOs that represent items."
+  "Items")
 
-(defn add-items
-  "Adds GameObjects from Prefabs for all item entities in the game"
+(defn item-tile-name
+  "The name of the item Unity Game Object with the specified Entity ID."
+  [entity-id]
+  (str "item-" entity-id))
+
+;; Our saved item set information
+(defonce last-items
+  (atom #{}))
+
+(defn initialize-items
+  "Creates the parent game object for the item game objects and resets
+   the last displayed items set."
   []
-  ;; First create a container
-  ;; Then create the items
-  (let [cgo (GameObject. "Items")  ; A Unity GameObject that will hold our other Item GOs
-        ct  (. cgo transform) ; The transform of the above
-        items (i/all-items (:entities (:level @ai/game-state)))]
-    #_(arcadia.core/log "Adding items:" items)
-    (set! (. cgo tag) item-tag)
-    (doseq [[[x y] entity] items]
-      (let [igo (instantiate-prefab (item-prefab (:item-type entity)) (arcadia.linear/v3 x y 0.0))]
-        ;; Add this to our items parent game object
-        (. (. igo transform) SetParent ct)
-        ))
-    #_(arcadia.core/log "Item addition complete") ))
+  (GameObject. item-parent-name)
+  (reset! last-items #{}))
 
-
-;; Updates all items in the map.
-;; Does this by deleting all objects tagged "item"
-;; and then recreates them appropriately.
-;; This is probably not efficient and should be revisited.
-;; TODO:
-;; 1. Name items with their unique ID
-;; 2. Save the state of all items in the dungeon
-;; 3. Only create (or remove) GO for items that have been added/removed
 (defn update-items
-  "HOOK: Updates the drawing of all items in the game."
-  [o]
-  #_(arcadia.core/log "Removing items")
-  (remove-tagged item-tag)
-  #_(arcadia.core/log "Adding items")
-  (add-items)
-  #_(arcadia.core/log "Item manipulation complete") )
-
+  "Updates all item tiles by seeing which have changed since the last
+   time we updated them. Items that move location will be removed and
+   re-added in the new location."
+  [elm] ; entity location map
+  (let [o-items  @last-items
+        ;; TODO: Filter for entity :type item
+        n-items  (set (i/all-items elm))
+        i-remove (set/difference o-items n-items)
+        i-add    (set/difference n-items o-items)
+        p-go     (object-named item-parent-name)
+        p-t      (. p-go transform)]
+    (arcadia.core/log "Removing items: " i-remove)
+    (arcadia.core/log "Adding items: " i-add)
+    ;; Remove old items
+    (doseq [[coord {i-id :id} :as item] i-remove]
+      (arcadia.core/log "Removing item ID: " i-id)
+      (arcadia.core/destroy (object-named (item-tile-name i-id))))
+    ;; Add new items
+    (doseq [[[x y] {i-id :id i-type :item-type}] i-add]
+      (arcadia.core/log "Adding item ID: " i-id ", type: " i-type)
+      (let [igo (instantiate-prefab (item-prefab i-type) (arcadia.linear/v3 x y 0.0))]
+        ;; Add this to our items parent game object
+        (. (. igo transform) SetParent p-t)))
+    ;; Now that our GameObject state is updated... Update our seen cache
+    (reset! last-items n-items)))
 
 ;; Visibility layer -------------------------------------------------------
 
@@ -468,6 +478,7 @@
       #_(arcadia.core/log "Finished terrain row" y) )
     ;; Initialize our overlay game objects
     (initialize-visibility-layer (:width (:level @ai/game-state)) (:height (:level @ai/game-state)))
+    (initialize-items)
     )
 
   (arcadia.core/log "Game startup complete"))
@@ -518,17 +529,17 @@
   "Calls all our LateUpdate hooks in order with the expected game objects."
   [startup-go]
   ;; Pointer moves arounda lot, so update this every frame.
-  (update-mouseover-text (object-named "MouseOverText"))
+  (update-mouseover-text (object-named "MouseOverText")) ; FIXME: MAGIC STRING
   ;; Only update everything else when there's a change in state
   (when (has-game-state-changed?)
     (arcadia.core/log "Game state changed, running LateUpdate hooks, frame:" (:frame @gsc-cache))
     #_(add-text-and-scroll (object-named "MessageText") (str "\nPlaying turn " (:frame @gsc-cache)))
     (update-gui startup-go)
-    (update-items startup-go)
+    (update-items (:entities (:level @ai/game-state)))
     (update-visibility-layer (:seen (:level @ai/game-state)) 
                              (:visible (:level @ai/game-state)))
-    (update-player (object-named "Player"))
-    (update-messages (object-named "MessageText"))
+    (update-player (object-named "Player")) ; FIXME: MAGIC STRING
+    (update-messages (object-named "MessageText")) ; FIXME: MAGIC STRING
     ))
 
 (defn hook-update
