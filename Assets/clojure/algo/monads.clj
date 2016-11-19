@@ -490,7 +490,9 @@
   (writer-m-add [c v] (conj c v))
   (writer-m-combine [c1 c2] (clojure.set/union c1 c2))
 
-  java.lang.String
+  ;; java.lang.String
+  ;; ClojureCLR uses a different class
+  System.String
   (writer-m-add [c v] (str c v))
   (writer-m-combine [c1 c2] (str c1 c2)))
 
@@ -596,7 +598,9 @@
                                  (= ~which-m-plus :m-plus-from-transformer))
                                ~which-m-plus
                              :else
-                               (throw (java.lang.IllegalArgumentException.
+                               (throw (;; java.lang.IllegalArgumentException.
+                                       ;; ArgumentException is the CLR equivalent
+                                       System.ArgumentException.
                                        "undefined m-plus choice")))
          combined-monad# (monad ~operations)]
     (if (= which-m-plus# :m-plus-from-base)

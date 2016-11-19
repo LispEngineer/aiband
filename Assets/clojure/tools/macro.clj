@@ -59,7 +59,9 @@
   (cond (protected? symbol)                   symbol
         (contains? macro-symbols symbol)     (get macro-symbols symbol)
         :else (let [v (try (resolve symbol)
-                           (catch java.lang.ClassNotFoundException e nil))
+                           #_(catch java.lang.ClassNotFoundException e nil)
+                           ;; ClojureCLR doesn't have that class, so...
+                           (catch System.NullReferenceException e nil))
                     m (meta v)]
                 (if (:symbol-macro m)
                   (var-get v)
