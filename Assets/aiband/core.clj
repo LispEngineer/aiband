@@ -11,6 +11,9 @@
             [aiband.bsp :as bsp :reload true]
             [aiband.item :as i :reload true]
             [aiband.fov :as fov :reload true]
+            [aiband.level :refer :all :reload true]
+            [aiband.player :refer :all :reload true]
+            [aiband.random :refer :all :reload true]
             [clojure.set :as set]))
 
 ;; Load our module into the REPL
@@ -18,19 +21,10 @@
 #_(in-ns 'aiband.core)
 
 ;; Forward definitions
-(declare create-game game-state add-message-to-game update-level-visibility)
+(declare create-game game-state add-message-to-game)
 
 
 ;; Configuration --------------------------------------------------------------
-
-;; TODO: Make these items be as a %age of level area? Room area in the level?
-(def min-items
-  "Minimum number of random items per level"
-  50) ;15)
-
-(def max-items
-  "Maximum number of random items per level"
-  250) ;50)
 
 (def see-dist
   "How far the player can see in a straight line, using
@@ -38,111 +32,14 @@
   4)
 
 
-;; ----------------------------------------------------------------------------
 
-(def level-map-string
-  "Fixed string with the map of a level. Dots are floor,
-   # are wall, and spaces are rock. We don't use any walls
-   as we will post-process this to add in the walls."
-   [
-        ;00000000001111111111222222222233333333334444444444
-        ;01234567890123456789012345678901234567890123456789
-    #_0 "                                                                                                                                "
-    #_1 "      ....              .....................             ......................                      ......                    "
-    #_2 "  ........              .                   .             ....                 .                     ........                   "
-    #_3 "  ...........           .                   .             ....                 .                     ........                   "
-    #_4 "  ...........           .   ........        .             ....                 .                 ................               "
-    #_5 " ...................................        .              .                   .                 .......................        "
-    #_6 " ............      .        ........        .              .                ..............       ................      .        "
-    #_7 "                   .        ........        .              .                .            .         .                   .        "
-    #_8 "                   .        ........        ................                .            ...........                   .        "
-    #_9 "                   .        ........                .               ..............                                     .        "
-    "                   .                                .              ...............                ......................        "
-    "                   .                                .             ................                .                             "
-    "                   .                                .            .................                .                             "
-    "           .................                        .           ..................                .                             "
-    "           .................                        .                                       .........                           "
-    "           .................                        .                                       .........                           "
-    "                   .                                .                                       .........                           "
-    "                   .                                .                                       ...   ...                           "
-    "                   .                                .                                       ...   ...     ....     ........     "
-    "      .            .                                .                                       ...   .........  ..............     "
-    "      .            .               ............     ...                                     .........                    ..     "
-    "      .            .               ............     .......               .                 .........                    ..     "
-    "      ..............               ............     .     .              ...                .........                    ..     "
-    "                   .               ..................     .             .....                                            ..     "
-    "                   .  ...          ............           .            .......                                           ..     "
-    "                   .... .          ............           .           .........                                          ..     "
-    "                        .          ............           .            .......                                           .....  "
-    "                    .........         .                   ...................                        .......             .....  "
-    "                    .       .         .                         .        ...                         .     ......            .  "
-    "                    .       .............                       .         .                          .          ........     .  "
-    "                    .                   .      ........         .                                    .                 .......  "
-    "                    .                   .      ........         .                    .               .                          "
-    "                  ......                ...............         ......               ...             .                          "
-    "                 ......                        ........              .....................           .                          "
-    "                ......                         ........                              .......         .                          "
-    "               ......                                                                .........       .                          "
-    "              ......                                      ............               ...........     .                          "
-    "             ......             ...                       .                              .           .      ...........         "
-    "               .                ...          .....        .                              .           .      ...........         "
-    "               .             ......         ..   ..       .                              ..............................         "
-    "               .             ................     ..      .     ..                       .                  ...........         "
-    "               .             ......                ...    .   ......                     .                  ...........         "
-    "               ....................                  ................                    .                  ...........         "
-    "                             ......                           ......                     .                                      "
-    "                                                                ..                       .                                      "
-    "                                                                                                                                "
-   ])
+;; Items & Level ------------------------------------------------------------
+;; Functions that have a dependency on both level and item data structures
+;; so we can't include them in either of those packages without creating
+;; a circular dependency.
 
-
-
-(defn rand-coord-seq
-  "Returns an infinitely long lazy sequence of random
-   [x y] coordinates within the specified bounds of width and height."
-  [w h]
-  (repeatedly #(do [(rand-int w) (rand-int h)])))
-
-(defn rand-location-t
-  "Returns a random coordinate in the given level with the
-   specified terrain type. Gives up after 10,000 tries
-   and returns nil."
-  [lv terr]
-  (some ; Returns the first "truthy" value (not false or nil)
-    (fn [coord]
-      (if (= (get2d (:terrain lv) coord) terr)
-        coord
-        nil))
-    (take 10000 (rand-coord-seq (:width lv) (:height lv)))))
-
-
-
-
-
-(defn char->terrain
-  "Converts a character to a terrain."
-  [ch]
-  (case ch
-    \. :floor
-    \# :wall
-    :rock))
-
-(defn convert-level-from-string
-  "Converts a vector/string representation of a level into our
-   vector/vector of keywords representation."
-  [lvstr]
-  (into2d []
-    (map2d-indexed
-      (fn [[x y :as coords] ch]
-        (let [t (char->terrain ch)]
-          (if (and (= t :rock)
-                   (any-neighbor= lvstr coords \.))
-              :wall t)))
-      lvstr)))
-
-;;; FIXME: Make the representation of items:
-;;; {[x y] [{item} ...] [x y] [{item} ...]}
-
+;; TODO: Have a random item generator that can then be stored
+;; in the level
 (defn create-random-item-in
   "Creates a random item that is on a floor space of the
    specified level. Returns as [[x y] entity]. NOT PURE."
@@ -163,49 +60,17 @@
     (take (+ min-items (rand-int (- max-items min-items -1)))
       (repeatedly (fn [] (create-random-item-in lv))))))
 
-(defn create-level-from-string
-  "Creates an Aiband level from a vector of strings.
-   Adds walls anywhere adjacent to floors.
-   Assumes the vector of strings is perfectly square."
-  [lvstr]
-  (let [max-y (count lvstr)
-        max-x (count (first lvstr))
-        lev (convert-level-from-string lvstr)
-        lv-ni {:width max-x :height max-y 
-               ;; What coordinates are currently visible to the player
-               ;; (usually calculated from LOS, but maybe there are other
-               ;; ways to see parts of the map)
-               :visible #{} 
-               ;; What coordinates have been seen by the player so we can
-               ;; draw them (grayed out, if not visible) so the player remembers
-               ;; them?
-               :seen #{}
-               ;; What is the 2D terrain map? (floors, walls)
-               :terrain lev 
-               ;; What items are in the level {coord [items]}?
-               :entities (i/create-entity-location-map)}] ; level with no items
-    (create-items-in lv-ni)))
+(defn create-level
+  "Creates a new random level with items in it."
+  []
+  (create-items-in (create-empty-level)))
 
 
-(defn create-player
-  "Creates an empty player object and places them in the level."
-  ;; Place the player in the level on a random floor tile
-  [level]
-  (let [[start-x start-y] (rand-location-t level :floor)]
-    {:x start-x :y start-y :hp 10 :hp-max 10}))
-
-(defn player-move
-  "Moves the player object in this game by the specified delta.
-   Returns [new-game error] with new-game like *game* and error string.
-   new-game will be nil, and error non-nil, on error."
-  [game dx dy]
-  (let [newgame
-        (-> game
-         (update-in [:player :x] (partial + dx))
-         (update-in [:player :y] (partial + dy)))]
-    [newgame ""]))
 
 
+;; Game Commands -----------------------------------------------------------------
+
+;; TODO: Make this into a monadic version
 (defn player-move-checked
   "Moves the player object in this game by the specified delta.
    Returns [new-game error] with new-game like *game* and error string.
@@ -234,6 +99,7 @@
          (assoc ,,, :level (update-level-visibility (:level game) [nx ny] see-dist)))
        ""])))
 
+;; Game infrastructure --------------------------------------------------------
 
 (defn update-game!
   "Updates the global *game* by calling the specified function
@@ -253,14 +119,11 @@
     [@game-state error]))
 
 
-(defn create-level
-  "Creates a new random level"
-  []
-  ; (create-level-from-string level-map-string))
-  ;; TODO: Save the BSP so we can create items and monsters in
-  ;; rooms and corridors appropriately.
-  (create-level-from-string (first (bsp/make-aiband-level 128 64))))
-
+;; ----------------------
+;; ----------------------
+;; ----------------------
+;; XXX: FIXME: TODO: Continue refactoring here
+;; (split into packages, etc.)
 
 
 (defn create-messages
@@ -357,55 +220,3 @@
       (str ;; coord " - " 
         (if loc-seen "Not visible, was: " "")
         (tile->name tile) item-str player-text))))
-
-;; Field of view -------------------------------------------------------------
-
-(defn terrain->transparent?
-  "Tells us if you can see through this terrain or not."
-  [terr]
-  (case terr
-    :floor true
-    :wall false
-    :rock false ; Should never happen
-    :else false)) ; Should never happen?
-
-(defn visible-ray
-  "Returns a set of all coordinates from the input seq (probably vector)
-   until (and including) finding one that blocks the sight further."
-  ;; External interface
-  ([lv ray]
-    (visible-ray (:terrain lv) ray #{}))
-  ;; Internal implementation
-  ([terr ray acc]
-    (cond
-      ;; No more to look at
-      (empty? ray)
-      acc
-      ;; We can see through this one
-      (terrain->transparent? (get2d terr (first ray)))
-      (visible-ray terr (rest ray) (conj acc (first ray)))
-      ;; We can't see through this one, so add it and we're done
-      :else
-      (conj acc (first ray)))))
-
-(defn visible-coords
-  "Calculates all the squares that can be seen from the specified
-   coordinate out to the specified distance in the provided level."
-  [lv coord dist]
-  (let [rays (fov/los-rays coord dist)]
-    (apply set/union (map #(visible-ray lv %) rays))))
-
-(defn update-level-visibility
-  "Returns a new level with the seen and visible information updated
-   for a player who is standing at the specified [x y] coords and who
-   can see 'dist' far away."
-  [lv coord dist]
-  (let [new-vis (visible-coords lv coord dist)
-        new-seen (set/union (:seen lv) new-vis)]
-    (if (and (= new-vis (:visible lv))
-             (= new-seen (:seen lv)))
-      ;; Nothing changed, so return the same object
-      lv
-      ;; Something changed, so return a new object with updated seen/visible
-      (assoc lv :seen new-seen :visible new-vis))))
-
