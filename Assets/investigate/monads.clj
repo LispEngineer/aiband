@@ -11,6 +11,11 @@
 ;; https://github.com/LonoCloud/synthread
 ;; https://github.com/rplevy/swiss-arrows
 
+;; TODO: Try this other more Haskell-seeming Monad library:
+;; https://github.com/bwo/monads
+;; Another one:
+;; https://github.com/jduey/protocol-monads
+
 (ns investigate.monads
   (:require [clojure.set :as set]
             [clojure.algo.monads :as m]))
@@ -39,6 +44,8 @@
 ;; several methods which each update one or several parts of the
 ;; game state and each of which can return a value as well as an
 ;; updated state.
+
+;; Using clojure.algo.monads: https://github.com/clojure/algo.monads
 
 ;; Utility function "in" version from monads.
 ;; TODO: Add a & rest so you can have a function with other args
