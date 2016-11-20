@@ -12,13 +12,22 @@
 ;; https://github.com/rplevy/swiss-arrows
 
 ;; TODO: Try this other more Haskell-seeming Monad library:
-;; https://github.com/bwo/monads
+;;   https://github.com/bwo/monads
+;;   The one above has a number of dependencies which may make it difficult to use.
 ;; Another one:
 ;; https://github.com/jduey/protocol-monads
 
 (ns investigate.monads
   (:require [clojure.set :as set]
-            [clojure.algo.monads :as m]))
+            ;; Clojure's monad library
+            [clojure.algo.monads :as m]
+            ;; BWO's monad library
+            [monads.core :as bm]
+            ; [monads.types :as t :refer [fst snd]]
+            [monads.state :as s]
+            ; [monads.maybe :as m]
+            [monads.util :as bu]))
+
 
 ;; Common -------------------------------------------------------------------
 
@@ -258,6 +267,8 @@
   ((gs-test-let-m 99 4) test-game-state)) ; ==> nil or [nil state]
 
 
+;; -------------------------------------------------------------------------------
+
 ;; Test 2: Use the threading macro ->
 ;; which seems to be very similar to how we would use a state
 ;; monad. However, we have no way to return an error in the thread
@@ -301,4 +312,17 @@
     ;; Use synthread's "do" and "<>"? 
     ;; Use swiss arrows and "-<>"?
     ))
+
+
+;; --------------------------------------------------------------------------
+
+;; Test 3: State Monad using BWO's library
+;; https://github.com/bwo/monads
+
+(def add-message-bm
+  "Adds a message to the game state and returns the number of messages in
+   the newly revised game state."
+  (bm/mdo
+    _ <- (modify update :text #(conj % message))
+    (return 1)))
 
