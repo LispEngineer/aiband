@@ -177,7 +177,7 @@
 #_((gs-move-player-m-v2 1 1) test-game-state)
 
 (defn gs-test-let-m
-  "State game: Test the :let, :cond and :if items in domonad."
+  "State game: Test the :let, :when, :cond and :if items in domonad."
   [dx dy]
   (dostate
     [_ (zoom :player   (move-player-m dx dy))
@@ -197,6 +197,12 @@
        [_  (zoom :messages (add-message-m "You're not too low."))]
        :else
        [_  (zoom :messages (add-message-m "You're high!!!"))]]
+     ;; If the when is met, monad continues. Otherwise, the whole thing
+     ;; returns nil instead of the usual [value state]. However, if we define
+     ;; the m-zero on the state monad, then we get a proper monadic return of
+     ;; nil, and the state as of the :when clause. I'm not sure this is a good
+     ;; idea or not.
+     :when (< x 70)
      _ (zoom :messages (add-message-m (str "Thank you for playing: " xplusy)))]
     ;; Use our let in the return values
     (* xplusy xplus1)))
@@ -206,7 +212,8 @@
   ((gs-test-let-m 1 1) test-game-state)
   ((gs-test-let-m 4 4) test-game-state)
   ((gs-test-let-m 4 2) test-game-state)
-  ((gs-test-let-m 4 -2) test-game-state))
+  ((gs-test-let-m 4 -2) test-game-state)
+  ((gs-test-let-m 99 4) test-game-state)) ; ==> nil or [nil state]
 
 
 ;; Test 2: Use the threading macro ->

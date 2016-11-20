@@ -403,6 +403,8 @@
                 (fn [s]
                   (let [[v ss] (mv s)]
                     ((f v) ss))))
+    ;; DPF test for :when - this is not really a state monad anymore now
+    ; m-zero    (fn [s] [nil s])
    ])
 
 (defn update-state
