@@ -27,6 +27,19 @@
   250) ;50)
 
 
+;; Tiles ----------------------------------------------------------------------
+
+(defn tile->name
+  "Returns human readable tile name."
+  [tile]
+  (case tile
+    :rock ""
+    :floor "Floor"
+    :wall "Wall"
+    :else "Unknown"))
+
+
+
 ;; TEST -------------------------------------------------------------------------
 
 (def level-map-string
