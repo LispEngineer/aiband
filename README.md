@@ -59,6 +59,8 @@ To install: (This assumes use of a Mac)
 5. Implement pick up items:
    1. Get one or all the items in current location (to test getting)
    2. Pop up a menu for which item to get if multiple are there
+6. Implement doors as terrain that can be changed, including a 2D-vector diff
+   which lists all changed entries so that Unity can redraw them efficiently.
 
 # Unity Configuration
 

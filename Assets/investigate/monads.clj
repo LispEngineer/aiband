@@ -20,13 +20,7 @@
 (ns investigate.monads
   (:require [clojure.set :as set]
             ;; Clojure's monad library
-            [clojure.algo.monads :as m]
-            ;; BWO's monad library
-            [monads.core :as bm]
-            ; [monads.types :as t :refer [fst snd]]
-            [monads.state :as s]
-            ; [monads.maybe :as m]
-            [monads.util :as bu]))
+            [clojure.algo.monads :as m]))
 
 
 ;; Common -------------------------------------------------------------------
@@ -312,17 +306,3 @@
     ;; Use synthread's "do" and "<>"? 
     ;; Use swiss arrows and "-<>"?
     ))
-
-
-;; --------------------------------------------------------------------------
-
-;; Test 3: State Monad using BWO's library
-;; https://github.com/bwo/monads
-
-(def add-message-bm
-  "Adds a message to the game state and returns the number of messages in
-   the newly revised game state."
-  (bm/mdo
-    _ <- (modify update :text #(conj % message))
-    (return 1)))
-
