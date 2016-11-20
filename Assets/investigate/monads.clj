@@ -15,12 +15,20 @@
 ;;   https://github.com/bwo/monads
 ;;   The one above has a number of dependencies which may make it difficult to use.
 ;; Another one:
-;; https://github.com/jduey/protocol-monads
+;;   https://github.com/jduey/protocol-monads
+;; Haskell-inspired:
+;;   http://fluokitten.uncomplicate.org/
 
 (ns investigate.monads
   (:require [clojure.set :as set]
-            ;; Clojure's monad library
-            [clojure.algo.monads :as m]))
+            ;; Clojure's monad library augmented by my stuff
+            [clojure.algo.monads :as m
+             ;; We specifically don't want update-val and update-state as we
+             ;; made better versions of these
+             :refer [domonad 
+                     maybe-t state-t maybe-m state-m 
+                     with-state-field fetch-val]]
+            [aiband.monads :as am :refer :all :reload true]))
 
 
 ;; Common -------------------------------------------------------------------
@@ -50,25 +58,6 @@
 
 ;; Using clojure.algo.monads: https://github.com/clojure/algo.monads
 
-;; Utility function "in" version from monads.
-;; TODO: Add a & rest so you can have a function with other args
-(defn update-in-val
-  "Return a state-monad function that assumes the state to be a map and
-   replaces the value associated with the given keys vector by the return value
-   of f applied to the old value. The old value is returned."
-  [keys f]
-  (fn [s]
-    (let [old-val (get-in s keys)
-          new-s   (assoc-in s keys (f old-val))]
-      [old-val new-s])))
-
-;; Utility function "in" version from monads.
-(defn fetch-in-val
-  "Return a state-monad function that assumes the state to be a nested map and
-   returns the value corresponding to the given keys vector. The state is not modified."
-  [keys]
-  (fn [s] [(get-in s keys) s]))
-
 (defn add-message-m-v1
   "Monad: Adds a message to the game state. Returns number of
    messages in the game state now."
@@ -84,16 +73,16 @@
 ;; Use the above
 #_(do
   ;; This returns a function that needs a state input
-  (m/domonad m/state-m [retval (add-message-m-v1 "hi")] retval) 
+  (domonad state-m [retval (add-message-m-v1 "hi")] retval) 
   ;; Use the above function on the test state; the return is the
   ;; [retval final-state]
-  ((m/domonad m/state-m [_ (add-message-m-v1 "hi") retval (add-message-m-v1 "second hi")] retval) test-game-state))
+  ((dostate [_ (add-message-m-v1 "hi") retval (add-message-m-v1 "second hi")] retval) test-game-state))
 
 (defn add-message-gs-m
   "Monad: Adds a message to the game state. Returns number of
    messages in the game state now."
   [message]
-  (m/domonad m/state-m
+  (domonad state-m
     [_       (update-in-val [:messages :text] #(conj % message))
      _       (update-in-val [:messages :final] inc)
      final   (fetch-in-val  [:messages :final])
@@ -107,35 +96,35 @@
   ;; This returns the return value and the new state as a vector
   ((add-message-gs-m "Hello") test-game-state)
   ;; Composes this twice...
-  ((m/domonad m/state-m [_ (add-message-gs-m "Hello") rv (add-message-gs-m "Second")] rv) test-game-state))
+  ((domonad state-m [_ (add-message-gs-m "Hello") rv (add-message-gs-m "Second")] rv) test-game-state))
 
 (defn add-message-m
   "State messages: Adds a message to the messages map of game-state. 
    Can be called on the game-state itself using with-state-field."
   [message]
-  (m/domonad m/state-m
-    [_       (m/update-val :text #(conj % message))
-     _       (m/update-val :final inc)
-     final   (m/fetch-val  :final)
-     initial (m/fetch-val  :initial)]
+  (domonad state-m
+    [_       (update-val :text #(conj % message))
+     _       (update-val :final inc)
+     final   (fetch-val  :final)
+     initial (fetch-val  :initial)]
     ;; Return current number of messages
     (- final initial)))
 
 ;; Use the above
 #_(do
   ((add-message-m "First") (:messages test-game-state))
-  ((m/domonad m/state-m [_ (add-message-m "First") rv (add-message-m "Second")] rv) (:messages test-game-state))
+  ((domonad state-m [_ (add-message-m "First") rv (add-message-m "Second")] rv) (:messages test-game-state))
   ;; Use this with the larger game-state
   ;; with-state-field is a lot like zoom in Haskell lenses
-  ((m/with-state-field :messages (add-message-m "First")) test-game-state))
+  ((with-state-field :messages (add-message-m "First")) test-game-state))
 
 (defn move-player-m
   "State player: Moves the player the specified dx/dy distance.
    Can be called on the game-state itself using with-state-field."
   [dx dy]
-  (m/domonad m/state-m
-    [_       (m/update-val :x (partial + dx))
-     _       (m/update-val :y (partial + dy))]
+  (domonad state-m
+    [_       (update-val :x (partial + dx))
+     _       (update-val :y (partial + dy))]
      ;; TODO: Return nil if we couldn't move, or true if no error?
      ;; How do we get an error message in there?
      (if (> dx 65) nil true)))
@@ -149,24 +138,14 @@
   "State game: Moves the player the specified delta and adds a message
    that the player was moved."
   [dx dy]
-  (m/domonad m/state-m
-    [_ (m/with-state-field :player   (move-player-m dx dy))
-     _ (m/with-state-field :messages (add-message-m (str "Moved by " dx "," dy)))]
+  (domonad state-m
+    [_ (with-state-field :player   (move-player-m dx dy))
+     _ (with-state-field :messages (add-message-m (str "Moved by " dx "," dy)))]
     ;; No return value
     true))
 
 ;; Use the above
 #_((gs-move-player-m 1 1) test-game-state)
-
-(defmacro dostate
-  "Does a state monad. The same as (domonad state-m ...). Syntactic sugar."
-  [& args]
-  (apply list 'm/domonad 'm/state-m args))
-
-(defmacro zoom
-  "Renames m/with-state-field to zoom"
-  [& args]
-  (apply list 'm/with-state-field args))
 
 ;; TODO: Write a macro dostate' which is a simplified verison of dostate
 ;; which takes just monadic forms and returns the return value of the last
@@ -196,7 +175,7 @@
   ;; Test out the state monad combined with the maybe monad. If a step
   ;; returns nil, no further computations are performed, but that state
   ;; is kept as of the nil return. This doesn't seem to be a useful thing.
-  (m/domonad (m/maybe-t m/state-m)
+  (domonad (maybe-t state-m)
     [_ (zoom :player   (move-player-m dx dy))
      _ (zoom :messages (add-message-m (str "Moved by " dx "," dy)))]
     ;; No return value
@@ -213,7 +192,7 @@
   ;; This is like v3 but with the monad stack being state maybe instead of
   ;; maybe state. This seems to do nothing different than just having plain
   ;; state monad.
-  (m/domonad (m/state-t m/maybe-m)
+  (domonad (state-t maybe-m)
     [_ (zoom :player   (move-player-m dx dy))
      _ (zoom :messages (add-message-m (str "Moved by " dx "," dy)))]
     ;; No return value
@@ -226,7 +205,7 @@
   [dx dy]
   (dostate
     [_ (zoom :player   (move-player-m dx dy))
-     x (zoom :player (m/fetch-val :x))
+     x (zoom :player (fetch-val :x))
      y (fetch-in-val [:player :y])
      :let [xplusy (+ x y)
            xplus1 (inc x)]
@@ -248,7 +227,8 @@
      ;; nil, and the state as of the :when clause. I'm not sure this is a good
      ;; idea or not.
      :when (< x 70)
-     _ (zoom :messages (add-message-m (str "Thank you for playing: " xplusy)))]
+     _ (zoom :messages (add-message-m (str "Thank you for playing: " xplusy)))
+     _ (zoom :messages (add-message-m "THE END"))]
     ;; Use our let in the return values
     (* xplusy xplus1)))
 
