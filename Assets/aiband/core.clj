@@ -11,9 +11,9 @@
             [aiband.bsp :as bsp :reload true]
             [aiband.item :as i :reload true]
             [aiband.fov :as fov :reload true]
-            [aiband.level :refer :all :reload true]
-            [aiband.player :refer :all :reload true]
-            [aiband.random :refer :all :reload true]
+            [aiband.level :as lv :reload true]
+            [aiband.player :as p :reload true]
+            [aiband.random :as rnd :reload true]
             [clojure.set :as set]))
 
 ;; Load our module into the REPL
@@ -44,7 +44,7 @@
   "Creates a random item that is on a floor space of the
    specified level. Returns as [[x y] entity]. NOT PURE."
   [lv]
-  (let [[x y] (rand-location-t lv :floor)
+  (let [[x y] (lv/rand-location-t lv :floor)
         i-type (get [:ring :amulet] (rand-int 2))]
     [[x y] (i/create-item i-type)]))
 
@@ -57,13 +57,13 @@
     (fn [lv [coord entity]]
       (assoc lv :entities (i/add-entity (:entities lv) coord entity)))
     lv
-    (take (+ min-items (rand-int (- max-items min-items -1)))
+    (take (+ lv/min-items (rand-int (- lv/max-items lv/min-items -1)))
       (repeatedly (fn [] (create-random-item-in lv))))))
 
 (defn create-level
   "Creates a new random level with items in it."
   []
-  (create-items-in (create-empty-level)))
+  (create-items-in (lv/create-empty-level)))
 
 
 
@@ -96,7 +96,7 @@
          (assoc-in ,,, [:player :x] nx)
          (assoc-in ,,, [:player :y] ny)
          ;; Update visibility
-         (assoc ,,, :level (update-level-visibility (:level game) [nx ny] see-dist)))
+         (assoc ,,, :level (lv/update-level-visibility (:level game) [nx ny] see-dist)))
        ""])))
 
 ;; Game infrastructure --------------------------------------------------------
@@ -160,9 +160,9 @@
   "Creates a new game object with a player."
   []
   (let [level (create-level)
-        player (create-player level)
+        player (p/create-player level)
         ;; Update what the player can see from the start
-        level-vis (update-level-visibility level [(:x player) (:y player)] see-dist)]
+        level-vis (lv/update-level-visibility level [(:x player) (:y player)] see-dist)]
     {:level level-vis
      :player player
      :messages (create-messages)}))
