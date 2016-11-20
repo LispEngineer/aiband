@@ -108,6 +108,7 @@
      _       (m/update-val :final inc)
      final   (m/fetch-val  :final)
      initial (m/fetch-val  :initial)]
+    ;; Return current number of messages
     (- final initial)))
 
 ;; Use the above
@@ -125,8 +126,9 @@
   (m/domonad m/state-m
     [_       (m/update-val :x (partial + dx))
      _       (m/update-val :y (partial + dy))]
-     ;; TODO: Return an error message if we couldn't move, or nil if no error
-     nil))
+     ;; TODO: Return nil if we couldn't move, or true if no error?
+     ;; How do we get an error message in there?
+     (if (> dx 65) nil true)))
 
 ;; Use the above
 #_((move-player-m 1 1) (:player test-game-state))
@@ -141,7 +143,7 @@
     [_ (m/with-state-field :player   (move-player-m dx dy))
      _ (m/with-state-field :messages (add-message-m (str "Moved by " dx "," dy)))]
     ;; No return value
-    nil))
+    true))
 
 ;; Use the above
 #_((gs-move-player-m 1 1) test-game-state)
@@ -171,10 +173,43 @@
     [_ (zoom :player   (move-player-m dx dy))
      _ (zoom :messages (add-message-m (str "Moved by " dx "," dy)))]
     ;; No return value
-    nil))
+    "Worked"))
+
 
 ;; Use the above
 #_((gs-move-player-m-v2 1 1) test-game-state)
+
+(defn gs-move-player-m-v3
+  "State game: Moves the player the specified delta and adds a message
+   that the player was moved."
+  [dx dy]
+  ;; Test out the state monad combined with the maybe monad. If a step
+  ;; returns nil, no further computations are performed, but that state
+  ;; is kept as of the nil return. This doesn't seem to be a useful thing.
+  (m/domonad (m/maybe-t m/state-m)
+    [_ (zoom :player   (move-player-m dx dy))
+     _ (zoom :messages (add-message-m (str "Moved by " dx "," dy)))]
+    ;; No return value
+    "Worked v3"))
+
+;; Use the above
+#_((gs-move-player-m-v3 1 1) test-game-state)
+#_((gs-move-player-m-v3 400 4) test-game-state) ; ==> nil but 402 on the X in the state
+
+(defn gs-move-player-m-v4
+  "State game: Moves the player the specified delta and adds a message
+   that the player was moved."
+  [dx dy]
+  ;; This is like v3 but with the monad stack being state maybe instead of
+  ;; maybe state. This seems to do nothing different than just having plain
+  ;; state monad.
+  (m/domonad (m/state-t m/maybe-m)
+    [_ (zoom :player   (move-player-m dx dy))
+     _ (zoom :messages (add-message-m (str "Moved by " dx "," dy)))]
+    ;; No return value
+    "Worked v4"))
+;; Same tests as v3 above.
+
 
 (defn gs-test-let-m
   "State game: Test the :let, :when, :cond and :if items in domonad."
