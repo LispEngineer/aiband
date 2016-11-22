@@ -28,6 +28,9 @@
             [aiband.clrjvm :refer :all :reload true]
             [aiband.v2d :refer :all :reload true]
             [aiband.item :as i :reload true]
+            [aiband.game :as game :reload true]
+            [aiband.globals :as g :reload true] ; game-state and others
+            [aiband.commands :as commands :reload true]
             [clojure.set :as set])
   (:use arcadia.core arcadia.linear))
 
@@ -73,14 +76,14 @@
         ;; We already calculated this for this frame
         changed
         ;; Let's calculate for this frame and
-        (if (identical? @ai/game-state gs)
+        (if (identical? @g/game-state gs)
           ;; Nothing changed
           (do
             (reset! gsc-cache (make-game-state-cache currentFrame gs false))
             false)
           ;; Something changed
           (do
-            (reset! gsc-cache (make-game-state-cache currentFrame @ai/game-state true))
+            (reset! gsc-cache (make-game-state-cache currentFrame @g/game-state true))
             true))))))
 
 
@@ -200,7 +203,7 @@
         dy (+ dy1 dy2)]
     (when (not (and (zero? dx) (zero? dy)))
       (arcadia.core/log "Total move delta:" dx dy)
-      (ai/update-game! ai/player-move-checked dx dy))))
+      (game/update-game! commands/move dx dy))))
 
 ;; Updates the GUI with the latest HP, etc.
 ;; Call this in a LateUpdate.
@@ -213,7 +216,7 @@
         go-x-text  (cmpt go-x Text)
         go-y       (object-named "YData")  ; FIXME: Magic string
         go-y-text  (cmpt go-y Text)
-        state      @ai/game-state
+        state      @g/game-state
         player     (:player state)]
     (has-game-state-changed?)
     #_(arcadia.core/log "update-gui:" go-x-text state)
@@ -232,7 +235,7 @@
   [go-player]
   (let [p-t (. go-player transform)
         p-p (. p-t position)
-        p-state (:player @ai/game-state)
+        p-state (:player @g/game-state)
         mc (object-named "Main Camera")
         mc-t (. mc transform)
         mc-p (. mc-t position)]
@@ -301,8 +304,8 @@
         i-add    (set/difference n-items o-items)
         p-go     (object-named item-parent-name)
         p-t      (. p-go transform)]
-    (arcadia.core/log "Removing items: " i-remove)
-    (arcadia.core/log "Adding items: " i-add)
+    #_(arcadia.core/log "Removing items: " i-remove)
+    #_(arcadia.core/log "Adding items: " i-add)
     ;; Remove old items
     (doseq [[coord {i-id :id} :as item] i-remove]
       #_(arcadia.core/log "Removing item ID: " i-id)
@@ -398,9 +401,9 @@
         make-vis (set/difference n-vis o-vis)
         make-seen1 (set/difference o-vis n-vis)
         make-seen2 (set/difference n-seen o-seen n-vis)]
-    (arcadia.core/log "Newly visible: " make-vis)
-    (arcadia.core/log "Now seen 1: " make-seen1)
-    (arcadia.core/log "Now seen 2: " make-seen2)
+    #_(arcadia.core/log "Newly visible: " make-vis)
+    #_(arcadia.core/log "Now seen 1: " make-seen1)
+    #_(arcadia.core/log "Now seen 2: " make-seen2)
     ;; Update the tiles in these three sets
     (doseq [nv make-vis]
       (set-visibility-tile nv :visible))
@@ -456,12 +459,12 @@
   [o]
   (arcadia.core/log "Game startup")
   (camera-setup)
-  (ai/initialize-game)
-  (let [terrain (:terrain (:level @ai/game-state))
+  (game/initialize-game)
+  (let [terrain (:terrain (:level @g/game-state))
         tgo (GameObject. "Terrain")  ; A Unity GameObject that will hold our other Terrain GOs
         tt  (. tgo transform)] ; The transform of the above
-    (arcadia.core/log "Terrain" terrain)
-    (arcadia.core/log "Screen" Screen/width Screen/height)
+    #_(arcadia.core/log "Terrain" terrain)
+    #_(arcadia.core/log "Screen" Screen/width Screen/height)
     ;; Iterate over the 2D vector including indices
     (doseq [[y row] (map list (range) terrain)]
       #_(arcadia.core/log "Starting terrain row" y)
@@ -479,16 +482,15 @@
           #_(arcadia.core/log "Created" x y t go) ))
       #_(arcadia.core/log "Finished terrain row" y) )
     ;; Initialize our overlay game objects
-    (initialize-visibility-layer (:width (:level @ai/game-state)) (:height (:level @ai/game-state)))
+    (initialize-visibility-layer (:width (:level @g/game-state)) (:height (:level @g/game-state)))
     (initialize-items)
     )
-
   (arcadia.core/log "Game startup complete"))
 
 ;; Messages ---------------------------------------------------------------------
 
 (defonce last-message-shown
-  ;;;; "What the last message number from @ai/game-state :messages is that
+  ;;;; "What the last message number from @g/game-state :messages is that
   ;;;;  we have added to our text box."
   (atom 0))
 
@@ -499,9 +501,9 @@
    reasonable length (1k messages?)."
   [mtgo] ;; Message Text Game Object
   (let [lm @last-message-shown
-        cm   (get-in @ai/game-state [:messages :final])
-        im   (get-in @ai/game-state [:messages :initial])
-        msgs (get-in @ai/game-state [:messages :text])]
+        cm   (get-in @g/game-state [:messages :final])
+        im   (get-in @g/game-state [:messages :initial])
+        msgs (get-in @g/game-state [:messages :text])]
     (when (not= lm cm)
       ;; Update our messages
       (doseq [m-idx (range (- lm im -1) (+ cm 1))]
@@ -513,14 +515,14 @@
 ;; will change the Text of the default game object state.
 #_
 (do
-  (reset! ai/game-state {:messages {:initial 0 :final 0 :text []}})
+  (reset! g/game-state {:messages {:initial 0 :final 0 :text []}})
   (update-messages (object-named "MessageText"))
-  (reset! ai/game-state {:messages {:initial 0 :final 4 :text ["Message 1" "Message 2" "Message 3" "Msg 4"]}})
+  (reset! g/game-state {:messages {:initial 0 :final 4 :text ["Message 1" "Message 2" "Message 3" "Msg 4"]}})
   (update-messages (object-named "MessageText"))
   (update-messages (object-named "MessageText"))
-  (reset! ai/game-state {:messages {:initial 1 :final 4 :text ["Message 2" "Message 3" "Msg 4"]}})
+  (reset! g/game-state {:messages {:initial 1 :final 4 :text ["Message 2" "Message 3" "Msg 4"]}})
   (update-messages (object-named "MessageText"))
-  (reset! ai/game-state {:messages {:initial 2 :final 5 :text ["Message 3" "Msg 4" "Add a 5th"]}})
+  (reset! g/game-state {:messages {:initial 2 :final 5 :text ["Message 3" "Msg 4" "Add a 5th"]}})
   (update-messages (object-named "MessageText"))
   (update-messages (object-named "MessageText"))
   )
@@ -537,9 +539,9 @@
     (arcadia.core/log "Game state changed, running LateUpdate hooks, frame:" (:frame @gsc-cache))
     #_(add-text-and-scroll (object-named "MessageText") (str "\nPlaying turn " (:frame @gsc-cache)))
     (update-gui startup-go)
-    (update-items (:entities (:level @ai/game-state)))
-    (update-visibility-layer (:seen (:level @ai/game-state)) 
-                             (:visible (:level @ai/game-state)))
+    (update-items (:entities (:level @g/game-state)))
+    (update-visibility-layer (:seen (:level @g/game-state)) 
+                             (:visible (:level @g/game-state)))
     (update-player (object-named "Player")) ; FIXME: MAGIC STRING
     (update-messages (object-named "MessageText")) ; FIXME: MAGIC STRING
     ))
