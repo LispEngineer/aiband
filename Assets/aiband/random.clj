@@ -73,3 +73,35 @@
 ;; Also:
 #_(map (fn [n] (if (< n 0) (+ (bigint n) (reduce * (repeat 64 2N))) (bigint n))) (aiband.random/xorshift64* 291024042017346))
 ; => (12621637665035066184N 9202446269008924136N)
+
+(def two63-1 "2^63-1" 9223372036854775807)
+(def two63   "2^63"   9223372036854775808)
+
+(defn ->pos
+  "Converts a random long to a positive number."
+  [n]
+  (bit-and n two63-1))
+
+(defn ->double
+  "Converts a random long to a double in the range [0, 1). It can actually return
+   1.0, which is not good?
+   user> (double (/ 9223372036854771657 9223372036854775808))
+   0.999999999999999
+   user> (double (/ 9223372036854771658 9223372036854775808)) 
+   1.0"
+  [n]
+  (double (/ (->pos n) two63)))
+
+(defn make-seed
+  "Makes a random seed from the provided (long) number."
+  [n']
+  ;; Multiply a bunch of non-zero numbers together
+  (let [n (long n')
+        s (unchecked-multiply 
+            (unchecked-multiply (bit-or n 1) (bit-or n 2)) 
+            (unchecked-multiply (bit-or n 240) (bit-or n 3008)))]
+    (if (zero? s)
+      ;; Should almost never happen
+      8675309
+      s)))
+
