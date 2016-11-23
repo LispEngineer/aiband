@@ -48,3 +48,29 @@
     :clj  (eval `(java.lang.Math/abs ~v))
     :cljr (eval `(System.Math/Abs ~v))
     nil))
+
+(defn time-ms
+  "Milliseconds since Jan 1, 1970, UTC."
+  []
+  (case platform
+    :clj  (eval `(java.lang.System/currentTimeMillis))
+    ;; https://stackoverflow.com/questions/5680375/asp-net-get-milliseconds-since-1-1-1970
+    :cljr (eval `(- (long (/ (. (DateTime/UtcNow) Ticks) TimeSpan/TicksPerMillisecond)) 62135596800000))
+    nil))
+
+;; Test the above
+; .../Assets$ mono ~/src/clojure/nostrand/bin/Debug/Nostrand.exe cli-repl
+; user> (require ['aiband.clrjvm :reload true]) 
+; nil
+; user> (aiband.clrjvm/time-ms)                 
+; 1479942231426
+; user>  
+;
+; .../Assets$ rlwrap java -cp /opt/clojure-1.7.0/clojure-1.7.0.jar:. clojure.main
+; Clojure 1.7.0
+; user=> (require ['aiband.clrjvm :reload true])
+; nil
+; user=> (aiband.clrjvm/time-ms)
+; 1479942219742
+; user=> 
+
