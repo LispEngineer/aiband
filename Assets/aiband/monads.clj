@@ -26,11 +26,6 @@
   [& args]
   (apply list 'clojure.algo.monads/with-state-field args))
 
-(defmacro »
-  "Renames m/with-state-field (or zoom) to »"
-  [& args]
-  (apply list 'clojure.algo.monads/with-state-field args))
-
 (defn »
   "Returns a state-monad function that expects a map as its state and
    runs the remaining functions with all args as another state-monad function

@@ -68,7 +68,12 @@ To install: (This assumes use of a Mac)
 
 * State monadic functions start with µ• and operate on the specific data type
 * State monadic functions that operate on the base game state start with ɣ•
-* » is used as `zoom` or `with-state-field`
+  * Hence, some functions can have µ• and ɣ• versions (Monad and Game versions)
+    where the ɣ• version simply zooms into the necessary part of the game state
+    and then calls the µ• version.
+* » is used as `zoom` or `with-state-field` but creates the monad function 
+  with all the remaining arguments. (And in the future may be able to do a
+  nested zoom?)
 
 ## Monad function names
 
