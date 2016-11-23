@@ -7,7 +7,12 @@
 
 ;;;; Message-log related functionality
 
-(ns aiband.messages)
+(ns aiband.messages
+  (:require [clojure.algo.monads :as µ
+             ;; We specifically don't want update-val and update-state as we
+             ;; made better versions of these
+             :refer [domonad with-state-field fetch-val]]
+            [aiband.monads :as aµ :refer :all :reload true]))
 
 (defn create
   "Sets up our messages list.
@@ -20,7 +25,7 @@
   {:initial 0 :final 0 :text []})
 
 (defn add
-  "Adds a message to a messages list set up by create-messages.
+  "Non-monadic: Adds a message to a messages list set up by create.
    Takes the old messages list and returns a new one."
   ;; TODO: Reduce the initial so we don't have more than the
   ;; maximum number of desired messages in our history.
@@ -31,3 +36,26 @@
         new-initial initial]
     {:initial new-initial :final new-final :text new-text}))
 
+(defn µ•add
+  "State messages: Adds a message to the messages map of game-state. 
+   Can be called on the game-state itself using with-state-field.
+   Returns current number of messages."
+  [message]
+  (dostate
+    [_       (update-val :text  conj message)
+     _       (update-val :final inc)
+     final   (fetch-val  :final)
+     initial (fetch-val  :initial)]
+    ;; Return current number of messages
+    (- final initial)))
+
+(defn ɣ•add
+  "State game-state: Adds a message to the game state. Returns number of
+   messages in the game state now."
+  [message]
+  (dostate
+    [retval (» :messages µ•add message)] 
+    retval))
+
+;; Test the above
+#_((aiband.messages/ɣ•add "Hello, Doug") aiband.game/test-game-state) 

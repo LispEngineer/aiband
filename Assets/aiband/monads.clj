@@ -19,12 +19,34 @@
 (defmacro dostate
   "Does a state monad. The same as (domonad state-m ...). Syntactic sugar."
   [& args]
-  (apply list 'm/domonad 'm/state-m args))
+  (apply list 'clojure.algo.monads/domonad 'clojure.algo.monads/state-m args))
 
 (defmacro zoom
   "Renames m/with-state-field to zoom"
   [& args]
-  (apply list 'm/with-state-field args))
+  (apply list 'clojure.algo.monads/with-state-field args))
+
+(defmacro »
+  "Renames m/with-state-field (or zoom) to »"
+  [& args]
+  (apply list 'clojure.algo.monads/with-state-field args))
+
+(defn »
+  "Returns a state-monad function that expects a map as its state and
+   runs the remaining functions with all args as another state-monad function
+   on the state defined by
+   the map entry corresponding to key. The map entry is updated with the
+   new state returned by statement.
+   This is very similar to with-state-field but you can specify the name of
+   a function and its args which returns a state-monad function, without including
+   it in parenthesis.
+   In Haskell this would look like `binding <- zoom key $ µ•func args`."
+  [key µ•func & args]
+  (fn [s]
+    (let [substate (get s key nil)
+          [result new-substate] ((apply µ•func args) substate)
+          new-state (assoc s key new-substate)]
+      [result new-state])))
 
 
 
@@ -89,3 +111,9 @@
     (reset! atom-name final-state)
     retval))
 
+
+(defn <-
+  "Returns a state-monad function that returns the state unchanged
+   and the value passed in as the return value. Equivalent to a 'let'."
+  [v]
+  (fn [s] [v s]))

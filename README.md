@@ -43,6 +43,7 @@ To install: (This assumes use of a Mac)
 
 * Run the game in Unity player or export the game and run stand-alone
 
+
 # Next Steps
 
 1. Modify display to highlight the tile (if not unknown) over which the
@@ -61,6 +62,24 @@ To install: (This assumes use of a Mac)
    2. Pop up a menu for which item to get if multiple are there
 6. Implement doors as terrain that can be changed, including a 2D-vector diff
    which lists all changed entries so that Unity can redraw them efficiently.
+
+
+# Code naming conventions
+
+* State monadic functions start with µ• and operate on the specific data type
+* State monadic functions that operate on the base game state start with ɣ•
+* » is used as `zoom` or `with-state-field`
+
+## Monad function names
+
+Here is a way to translate from Haskell lens/state monad stuff to Clojure language.
+
+* Clojure -> Haskell
+* `fetch-val` -> `use`
+* `with-state-field` -> `zoom`
+* `set-val` -> `.=`
+* ??? -> `uses`
+
 
 # Unity Configuration
 
@@ -225,10 +244,16 @@ user=> (arcadia.internal.editor-interop/all-user-namespaces-symbols)
 
 # Credits
 
-* [`dg_features32.png` and other sprites](http://pousse.rapiere.free.fr/tome/tiles/AngbandTk/tome-angbandtkdungeontiles.htm)
+Software and resources:
 * [ClojureCLR](https://github.com/clojure/clojure-clr)
 * [Unity3D](https://unity3d.com/)
 * [Arcadia](https://github.com/arcadia-unity/Arcadia)
+* [`dg_features32.png` and other sprites](http://pousse.rapiere.free.fr/tome/tiles/AngbandTk/tome-angbandtkdungeontiles.htm)
+* [clojure.algo.monads](https://github.com/clojure/algo.monads)
+  * Which uses: [clojure.tools.macro](https://github.com/clojure/tools.macro)
+
+People:
+
 * [Ramsey Nasser](http://nas.sr/) for creating Arcadia and help with ClojureCLR, Unity and Arcadia
 * [Joseph Parker](http://selfsamegames.com/) for help with ClojureCLR, Unity and Arcadia
 

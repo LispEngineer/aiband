@@ -18,7 +18,30 @@
             [aiband.messages :as msg :reload true]
             [aiband.random :as rnd :reload true]
             [aiband.globals :refer :all :reload true]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.algo.monads :as µ
+             ;; We specifically don't want update-val and update-state as we
+             ;; made better versions of these
+             :refer [domonad with-state-field fetch-val]]
+            [aiband.monads :as aµ :refer :all :reload true]))
+
+;; Minimal game state for testing purposes ----------------------------------
+
+(def test-game-state
+  "A populated but not very complex test game state."
+  {:level
+    {:width 5 :height 5
+     :terrain [ [ :rock :wall  :wall  :wall  :wall ]
+                [ :wall :floor :floor :floor :wall ]
+                [ :wall :floor :floor :wall  :wall ]
+                [ :wall :wall  :floor :wall  :rock ]
+                [ :rock :wall  :wall  :wall  :wall ] ]
+     :seen #{} :visible #{}
+     :entities {}}
+   :player {:x 2 :y 2 :hp 10 :hp-max 10}
+   ;; TODO: Replace messages with a writer monad? 
+   :messages {:initial 0 :final 0 :text []}})
+
 
 ;; Items & Level ------------------------------------------------------------
 ;; Functions that have a dependency on both level and item data structures
@@ -62,6 +85,8 @@
   (assoc game :messages
     (msg/add (:messages game) new-msg)))
 
+;; See ɣ•add in messages
+
 ;; Game infrastructure --------------------------------------------------------
 
 (defn update-game!
@@ -80,6 +105,24 @@
       (reset! game-state new-game)
       (reset! game-state (add-message @game-state error)))
     [@game-state error]))
+
+(defn update-ɣ!
+  "Update the current game state atom by calling the specified state monad function
+   on the current game state. Updates the game state with the new state,
+   and returns the return value. If the new state is invalid (e.g., nil), then
+   we don't update the state."
+  [ɣ•func & rest]
+  (dosync
+    (let [[retval final-state] ((apply ɣ•func rest) @game-state)]
+      ;; TODO: Check that the state is valid before updating it
+      (when final-state (reset! game-state final-state))
+      retval)))
+
+;; Test the above
+#_(do
+  (reset! aiband.globals/game-state aiband.game/test-game-state)
+  (aiband.game/update-ɣ! aiband.commands/ɣ•move -1 -1)
+  @aiband.globals/game-state)
 
 
 (defn create

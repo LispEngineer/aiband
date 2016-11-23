@@ -20,7 +20,12 @@
             [aiband.messages :as msg :reload true]
             [aiband.random :as rnd :reload true]
             [aiband.globals :refer :all :reload true]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.algo.monads :as µ
+             ;; We specifically don't want update-val and update-state as we
+             ;; made better versions of these
+             :refer [domonad with-state-field fetch-val set-val]]
+            [aiband.monads :as aµ :refer :all :reload true]))
 
 
 ;; Game Commands -----------------------------------------------------------------
@@ -54,3 +59,41 @@
          ;; Update visibility
          (assoc ,,, :level (lv/update-level-visibility (:level game) [nx ny] see-dist)))
        ""])))
+
+
+(defn ɣ•move
+  "State game-state monad: Moves the player object in this game by the specified delta.
+   If not possible, adds a message to that effect and doesn't update the player."
+  [dx dy]
+  ;; TODO: Destructure the game using destructuring-let
+  ;; TODO: Check that dx/dy are at most magnitude 1
+  (dostate
+    [p-x           (fetch-in-val [:player :x])
+     p-y           (fetch-in-val [:player :y])
+     w             (fetch-in-val [:level :width])
+     h             (fetch-in-val [:level :height])
+     t             (fetch-in-val [:level :terrain])
+     level         (fetch-val    :level)
+     :let [nx      (+ p-x dx)
+           ny      (+ p-y dy)]
+     ;; Let's try the <- function
+     terrain       (<- (get2d t nx ny))
+     :cond [
+       ;; Moving out of range of the level (should never happen)
+       (or (< nx 0) (< ny 0) (>= nx w) (>= ny h))
+       [_      (msg/ɣ•add (str "Invalid move: " nx "," ny))
+        retval (<- false)]
+       ;; Moving into invalid terrain
+       (not= terrain :floor)
+       [_      (msg/ɣ•add (str "Invalid terrain: " nx "," ny ": " terrain))
+        retval (<- false)]
+       :else
+       [_      (set-in-val [:player :x] nx)
+        _      (set-in-val [:player :y] ny)
+        ;; FIXME: Make the below a monadic function on the level
+        _      (set-val :level (lv/update-level-visibility level [nx ny] see-dist))
+        retval (<- true)]]]
+    retval))    
+
+;; Test the above
+#_((aiband.commands/ɣ•move -3 -3) aiband.game/test-game-state) 
