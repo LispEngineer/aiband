@@ -41,8 +41,8 @@
      :entities {}}
    :player {:x 2 :y 2 :hp 10 :hp-max 10}
    ;; TODO: Replace messages with a writer monad? 
-   :messages {:initial 0 :final 0 :text []}})
-
+   :messages {:initial 0 :final 0 :text []}
+   :rng 1})
 
 ;; Items & Level ------------------------------------------------------------
 ;; Functions that have a dependency on both level and item data structures
@@ -76,36 +76,7 @@
   []
   (create-items-in (lv/create-empty-level)))
 
-
-;; Messages ---------------------------------------------------------------------
-
-(defn add-message
-  "Adds a message to a game object, returning a new game object
-   that is unchanged except for the messages."
-  [game new-msg]
-  (assoc game :messages
-    (msg/add (:messages game) new-msg)))
-
-;; See ɣ•add in messages
-
 ;; Game infrastructure --------------------------------------------------------
-
-(defn update-game!
-  "Updates the global *game* by calling the specified function
-   with the current game state as the first arg with the rest of
-   the args. The return value should be [new-state error]. If new-state
-   is non-nil, then we save it to *game*.
-   TODO: If the new-state is nil, we add the string error to the
-   messages of the (previous) game state, and update *game*."
-  [func & rest]
-  (println func)
-  (println rest)
-  (let [[new-game error :as retval]
-        (apply func @game-state rest)]
-    (if new-game 
-      (reset! game-state new-game)
-      (reset! game-state (add-message @game-state error)))
-    [@game-state error]))
 
 (defn update-ɣ!
   "Update the current game state atom by calling the specified state monad function

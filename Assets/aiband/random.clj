@@ -11,7 +11,8 @@
 ;; monad with properly pure random stuff.
 
 (ns aiband.random
-  (:require [clojure.algo.monads :as µ
+  (:require [aiband.v2d :refer :all :reload true]
+            [clojure.algo.monads :as µ
              ;; We specifically don't want update-val and update-state as we
              ;; made better versions of these
              :refer [domonad with-state-field fetch-val set-val]]
@@ -136,11 +137,58 @@
     [r (µ•rand-long)]
     (mod r n)))
 
+(defn µ•rand-coord
+  "State random-seed: [x y] coordinates within the specified bounds 
+   of width and height."
+  [w h]
+  (dostate
+    [x (µ•rand-int w)
+     y (µ•rand-int h)]
+    [x y]))
+
+
 ;; Test the above
 #_(do
   ((µ•rand-long) (make-seed 0))
   ((dostate [x (µ•rand-long) y (µ•rand-long)] [x y]) (make-seed 0))
   ((dostate [x (µ•rand) y (µ•rand)] [x y]) (make-seed 1))
   ((dostate [x (µ•rand 10000) y (µ•rand 2)] [x y]) (make-seed 1))
-  ((dostate [x (µ•rand-int 10000) y (µ•rand-int 2)] [x y]) (make-seed 7)))
+  ((dostate [x (µ•rand-int 10000) y (µ•rand-int 2)] [x y]) (make-seed 7))
+  ((µ•rand-coord 10 10) (make-seed 3))
+  )
+
+
+
+;; Random tools -------------------------------------------------------------
+
+;; Example (pointless) use of state-m-until
+#_((dostate [x (µ/state-m-until #(> % 990) (fn [x] (µ•rand-int 1000)) 0)] x) (make-seed 4))
+
+(defn ɣ•rand-location-t
+  "State game-state: Returns a random coordinate in the current level 
+   with the specified terrain type. Gives up after 10,000 tries
+   and returns nil."
+  [terr]
+  (letfn 
+    [(until [[x y :as coord] tries s]
+      #_(println coord " " tries " " s)
+      (cond
+        ;; We found a suitable terrain
+        (= (get2d (:terrain (:level s)) coord) terr)
+        [coord s]
+        ;; We ran out of tries
+        (> tries 10000)
+        [nil s]
+        ;; We have to keep trying
+        :else
+        (let [[next-coord next-s] 
+              ;; Calculate our next try and new state
+              ((» :rng µ•rand-coord (:width (:level s)) (:height (:level s))) s)]
+          ;; And do it again
+          (recur next-coord (inc tries) next-s))))]
+    (fn [s] (until [-1 -1] 0 s))))
+
+;; Test the above
+#_((dostate [a (aiband.level/ɣ•rand-location-t :rock) b (aiband.level/ɣ•rand-location-t :floor)] [a b])  aiband.game/test-game-state)
+
 

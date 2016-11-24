@@ -30,37 +30,6 @@
 
 ;; Game Commands -----------------------------------------------------------------
 
-;; TODO: Make this into a monadic version
-(defn move
-  "Moves the player object in this game by the specified delta.
-   Returns [new-game error] with new-game like *game* and error string.
-   new-game will be nil, and error non-nil, on error."
-  [game dx dy]
-  ;; TODO: Destructure the game using destructuring-let
-  ;; TODO: Check that dx/dy are at most magnitude 1
-  (let [player (:player game)
-        level  (:level game)
-        p-x    (:x player)
-        p-y    (:y player)
-        w      (:width level)
-        h      (:height level)
-        t      (:terrain level)
-        nx     (+ p-x dx)
-        ny     (+ p-y dy)]
-    (cond 
-      ;; Figure out every way the move could/should fail
-      (or (< nx 0) (< ny 0) (>= nx w) (>= ny h)) [nil (str "Invalid move: " nx "," ny)]
-      (not= (get2d t nx ny) :floor) [nil (str "Invalid terrain: " nx "," ny)]
-      ;; Otherwise, move the player.
-      :else
-      [(-> game
-         (assoc-in ,,, [:player :x] nx)
-         (assoc-in ,,, [:player :y] ny)
-         ;; Update visibility
-         (assoc ,,, :level (lv/update-level-visibility (:level game) [nx ny] see-dist)))
-       ""])))
-
-
 (defn ɣ•move
   "State game-state monad: Moves the player object in this game by the specified delta.
    If not possible, adds a message to that effect and doesn't update the player.

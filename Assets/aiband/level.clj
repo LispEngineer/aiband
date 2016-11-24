@@ -13,7 +13,12 @@
             [aiband.bsp :as bsp :reload true]
             [aiband.fov :as fov :reload true]
             [aiband.random :refer :all :reload true]
-            [clojure.set :as set] ))
+            [clojure.set :as set]
+            [clojure.algo.monads :as µ
+             ;; We specifically don't want update-val and update-state as we
+             ;; made better versions of these
+             :refer [domonad with-state-field fetch-val set-val]]
+            [aiband.monads :as aµ :refer :all :reload true]))
 
 ;; Configuration --------------------------------------------------------------
 
@@ -100,9 +105,10 @@
 ;; Random ----------------------------------------------------------------------
 
 (defn rand-location-t
+  ;; NOTE: State game-state monad version available
   "Returns a random coordinate in the given level with the
    specified terrain type. Gives up after 10,000 tries
-   and returns nil."
+   and returns nil. NOT PURE."
   [lv terr]
   (some ; Returns the first "truthy" value (not false or nil)
     (fn [coord]
@@ -110,7 +116,6 @@
         coord
         nil))
     (take 10000 (rand-coord-seq (:width lv) (:height lv)))))
-
 
 ;; String level generation ---------------------------------------------------
 
@@ -124,7 +129,7 @@
 
 (defn convert-level-from-string
   "Converts a vector/string representation of a level into our
-   vector/vector of keywords representation."
+   vector/vector of keywords representation. PURE."
   [lvstr]
   (into2d []
     (map2d-indexed
@@ -138,7 +143,7 @@
 (defn create-empty-level-from-string
   "Creates an empty Aiband level from a vector of strings.
    Adds walls anywhere adjacent to floors.
-   Assumes the vector of strings is perfectly square."
+   Assumes the vector of strings is perfectly square. PURE."
   [lvstr]
   (let [max-y (count lvstr)
         max-x (count (first lvstr))
@@ -159,7 +164,7 @@
     lv-ni))
 
 (defn create-empty-level
-  "Creates a new random level"
+  "Creates a new random level. NOT PURE."
   []
   ; (create-level-from-string level-map-string))
   ;; TODO: Save the BSP so we can create items and monsters in
@@ -226,5 +231,6 @@
    always returns true."
   [coord dist]
   ;; This cheat implementation just calls update-level-visibility
+  ;; TODO: Refactor the two into one.
   (fn [s]
     [true (update-level-visibility s coord dist)]))
