@@ -10,7 +10,12 @@
 ;; For now, these are impure. Eventually I'll want to make a full random
 ;; monad with properly pure random stuff.
 
-(ns aiband.random)
+(ns aiband.random
+  (:require [clojure.algo.monads :as µ
+             ;; We specifically don't want update-val and update-state as we
+             ;; made better versions of these
+             :refer [domonad with-state-field fetch-val set-val]]
+            [aiband.monads :as aµ :refer :all :reload true]))
 
 (defn rand-coord-seq
   "Returns an infinitely long lazy sequence of random
@@ -104,4 +109,38 @@
       ;; Should almost never happen
       8675309
       s)))
+
+(defn µ•rand-long
+  "State random-seed: Returns a random long."
+  []
+  xorshift64*)
+
+(defn µ•rand
+  "State random-seed: Returns a random double from 0.0-1.0 or
+   the provided n.
+   Akin to clojure.core/rand except we don't guarantee non-1.0."
+  ([]
+   (dostate
+     [r (µ•rand-long)]
+     (->double r)))
+  ([n]
+   (dostate
+     [r (µ•rand-long)]
+     (* n (->double r)))))
+
+(defn µ•rand-int
+  "State random-seed: Returns a random number from 0 to n (exclusive).
+   Akin to clojure.core/rand-int except we return a long."
+  [n]
+  (dostate
+    [r (µ•rand-long)]
+    (mod r n)))
+
+;; Test the above
+#_(do
+  ((µ•rand-long) (make-seed 0))
+  ((dostate [x (µ•rand-long) y (µ•rand-long)] [x y]) (make-seed 0))
+  ((dostate [x (µ•rand) y (µ•rand)] [x y]) (make-seed 1))
+  ((dostate [x (µ•rand 10000) y (µ•rand 2)] [x y]) (make-seed 1))
+  ((dostate [x (µ•rand-int 10000) y (µ•rand-int 2)] [x y]) (make-seed 7)))
 
