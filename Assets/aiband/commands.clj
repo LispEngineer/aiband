@@ -63,9 +63,10 @@
 
 (defn ɣ•move
   "State game-state monad: Moves the player object in this game by the specified delta.
-   If not possible, adds a message to that effect and doesn't update the player."
+   If not possible, adds a message to that effect and doesn't update the player.
+   Returns true if the player actually moved. The state always changes, as if the
+   player doesn't successfully move, a message is added to the message log."
   [dx dy]
-  ;; TODO: Destructure the game using destructuring-let
   ;; TODO: Check that dx/dy are at most magnitude 1
   (dostate
     [p-x           (fetch-in-val [:player :x])
@@ -90,8 +91,7 @@
        :else
        [_      (set-in-val [:player :x] nx)
         _      (set-in-val [:player :y] ny)
-        ;; FIXME: Make the below a monadic function on the level
-        _      (set-val :level (lv/update-level-visibility level [nx ny] see-dist))
+        _      (» :level lv/µ•update-visibility [nx ny] see-dist)
         retval (<- true)]]]
     retval))    
 

@@ -219,4 +219,12 @@
       ;; Something changed, so return a new object with updated seen/visible
       (assoc lv :seen new-seen :visible new-vis))))
 
-
+(defn µ•update-visibility
+  "State level: Updates the seen and visible information in the level
+   for a player who is standing at the specified [x y] coords and who
+   can see 'dist' far away. Returns unit which Clojure doesn't have, so
+   always returns true."
+  [coord dist]
+  ;; This cheat implementation just calls update-level-visibility
+  (fn [s]
+    [true (update-level-visibility s coord dist)]))

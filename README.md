@@ -50,11 +50,9 @@ To install: (This assumes use of a Mac)
    pointer is, as it moves, to make it very clear which tile the description
    box is showing.
 2. Add GPLv3 with Attribution license once I figure out how to do that.
-3. Put the random number seed into the game state and generate all numbers
-   off that.
-4. Rewrite all game state updates in a monadic style, including the use
-   of the state monad in the clojure standard (?) library here:
-   https://github.com/clojure/algo.monads/ (if it works in ClojureCLR).
+3. Modify all create methods to use a random seed or a partially created
+   game state, in a monadic way.
+4. Rewrite all game state updates in a monadic style.
    This will make my life much easier and allow my Haskell skills to be
    reused.
 5. Implement pick up items:

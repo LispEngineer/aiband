@@ -11,6 +11,7 @@
 (ns aiband.game
   (:require [aiband.v2d :refer :all :reload true]
             [aiband.bsp :as bsp :reload true]
+            [aiband.clrjvm :refer :all :reload true]
             [aiband.item :as i :reload true]
             [aiband.fov :as fov :reload true]
             [aiband.level :as lv :reload true]
@@ -128,13 +129,16 @@
 (defn create
   "Creates a new game object with a player and a random level with random items."
   []
+  ;; TODO: Create the random seed (or take it as a parameter) and then use that
+  ;; to call all the other create functions.
   (let [level (create-level)
         player (p/create-player level)
         ;; Update what the player can see from the start
         level-vis (lv/update-level-visibility level [(:x player) (:y player)] see-dist)]
     {:level level-vis
      :player player
-     :messages (msg/create)}))
+     :messages (msg/create)
+     :rng (rnd/make-seed (time-ms))}))
 
 ;; Game State and Initialization ---------------------------------------------
 
