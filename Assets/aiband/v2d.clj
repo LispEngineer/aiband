@@ -61,6 +61,15 @@
   [what seq2d]
   (into what (map #(into what %) seq2d)))
 
+(defn subvec2d
+  "Gets a square subset of the (ragged, but presumed square) 2D vector
+   starting at the specified coordinate and going for specified width and
+   height. The 2d vector is indexed first by y then by x. This does absolutely
+   no range checking, so be careful."
+  [v2d x y w h]
+  (let [sub-y (subvec v2d y (+ y h))]
+    (mapv #(subvec % x (+ x w)) sub-y)))
+
 
 ;;;; Neighbors ---------------------------------------------------------------
 

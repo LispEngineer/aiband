@@ -234,3 +234,111 @@
   ;; TODO: Refactor the two into one.
   (fn [s]
     [true (update-level-visibility s coord dist)]))
+
+
+;; Add doors ---------------------------------------------------------------
+
+(def door-locations
+  "Patterns where, the center of which, a door can be placed."
+  [
+    [ [ :any   :wall  :any   ]
+      [ :floor :floor :floor ]
+      [ :any   :wall  :any   ] ]
+
+    [ [ :any   :floor :any   ]
+      [ :wall  :floor :wall  ]
+      [ :any   :floor :any   ] ]
+  ]
+)
+
+(defn equals-or-any
+  "Given two sequences of equal length, returns true if both contain the same
+   contents, or the second one is :any in any unmatching location."
+  ;; FIXME: Redo this as a map over the two sequences and then an every?
+  [a b]
+  (let [a1 (first a)
+        b1 (first b)
+        ar (rest a)
+        br (rest b)]
+    (cond
+      ;; The heads don't match
+      (and (not= a1 b1) (not= b1 :any))
+      false
+      ;; The tails are done and we never found a mismatch
+      (and (empty? ar) (empty? br))
+      true
+      ;; Otherwise, recurse. FIXME: Use recur
+      :else
+      (equals-or-any ar br))))
+
+;; Test the above
+#_(do
+  (map equals-or-any [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 9]])
+  (map equals-or-any [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 8]]) 
+  (map equals-or-any [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 :any]]))
+
+(defn terrain-matches'
+  "Given two v2ds, returns true if every entry in a is the same as b,
+   or b is :any. This assumes both a and b are the exact same size."
+  [a b]
+  ;; Can't do it this way since and is a macro:
+  ;; (apply and (map equals-or-any a b)))
+  ;; See: https://clojuredocs.org/clojure.core/and
+  (every? identity (map equals-or-any a b)))
+
+;; Test the above
+#_(do
+  (terrain-matches' [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 9]])     
+  (terrain-matches' [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 8]]) 
+  (terrain-matches' [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 :any]]))
+
+(defn terrain-matches
+  "Given a level, location, and terrain subset, check if the specified
+   subset matches. The subset can include an :any which will match any
+   terrain type, in addition to the usual terrain types. The terrain
+   subset must have odd width and height. If the [x y] would cause the
+   subset to extend beyond the level bounds, this will
+   return false."
+  [level [x y :as loc] subset]
+  (let [s-h      (count subset)
+        s-w      (count (first subset))
+        l-w      (:width level)
+        l-h      (:height level)
+        dx       (int (/ s-w 2))
+        dy       (int (/ s-h 2))]
+    #_(println [x y dx dy])
+    (cond
+      ;; Check all bounds
+      (< (- x dx) 0)
+      :false1
+      (< (- y dy) 0)
+      :false2
+      (>= (+ x dx) l-w)
+      :false3
+      (>= (+ y dy) l-h)
+      :false4
+      ;; Check if we match...
+      :else
+      (let [terr-to-match (subvec2d (:terrain level) (- x dx) (- y dy) s-w s-h)]
+        (terrain-matches' terr-to-match subset)))))
+
+;; Test the above
+#_(do
+  (def lv (create-empty-level-from-string level-map-string))
+  (terrain-matches lv [12 5] (first door-locations)) ; -> false
+  (terrain-matches lv [13 5] (first door-locations)) ; -> true
+  (terrain-matches lv [14 5] (first door-locations)) ; -> true
+  (terrain-matches lv [19 5] (second door-locations)) ; -> false
+  (terrain-matches lv [19 6] (second door-locations)) ; -> true
+  (terrain-matches lv [19 7] (second door-locations)) ; -> true
+  (some #(terrain-matches lv [19 6] %) door-locations) ; -> true
+  (some #(terrain-matches lv [19 5] %) door-locations) ; -> nil (like false)
+  )
+
+
+(defn ɣ•add-doors
+  "State game-state: Adds a bunch of random doors to the current level."
+  []
+  ;; XXX: CODE ME
+  nil)
+
