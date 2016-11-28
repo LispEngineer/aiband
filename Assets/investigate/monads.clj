@@ -27,7 +27,8 @@
              ;; made better versions of these
              :refer [domonad 
                      maybe-t state-t maybe-m state-m 
-                     with-state-field fetch-val]]
+                     with-state-field fetch-val
+                     state-m-until]]
             [aiband.monads :as am :refer :all :reload true]))
 
 
@@ -287,3 +288,52 @@
     ;; Use synthread's "do" and "<>"? 
     ;; Use swiss arrows and "-<>"?
     ))
+
+
+;; m-until ---------------------------------------------------------------
+
+(defn ɣ•add-hp
+  "State game-state: Adds dhp to the player's HP.
+   Returns true if the players new HP is < 2x max HP."
+  [dhp]
+  (dostate
+    [_ (update-in-val [:player :hp] #(+ dhp %))
+     newhp (fetch-in-val [:player :hp])
+     maxhp (fetch-in-val [:player :hp-max])
+     _ (<- (println "New hp: " newhp))]
+    (< newhp (* 2 maxhp))))
+
+;; Test the above
+#_((ɣ•add-hp 13) test-game-state)
+
+(defn ɣ•add-hp-m-until
+  "State game-state: Adds n hp by adding one hp multiple times using
+   state-m-until, to learn how state-m-until works."
+  [n]
+  (dostate
+    [_ (state-m-until
+         #(>= % n) ; p used in (p x)
+         (fn [x] (domonad [_ (ɣ•add-hp 1)] (inc x))) ; f - add an hp and increment x
+         0)] ; x - start at 0 and count up to n
+    true))
+
+;; Test the above
+#_((ɣ•add-hp-m-until 13) test-game-state)
+
+
+(defn ɣ•add-hp-m-until'
+  "State game-state: Adds n hp by adding one hp multiple times using
+   state-m-until, to learn how state-m-until works."
+  [n]
+  (µ•repeat n (ɣ•add-hp 1)))
+
+(defn ɣ•add-hp-m-until''
+  "State game-state: Adds n hp by adding one hp multiple times using
+   state-m-until, to learn how state-m-until works."
+  [n]
+  (µ•repeat-until n (ɣ•add-hp 1)))
+
+;; Test the above
+#_(do
+  ((ɣ•add-hp-m-until'  13) test-game-state)  ; -> :hp is 23
+  ((ɣ•add-hp-m-until'' 13) test-game-state)) ; -> :hp is 20

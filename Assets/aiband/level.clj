@@ -349,7 +349,7 @@
       [true upd-state])))
 
 
-(defn ɣ•add-doors
+(defn ɣ•add-doors'
   "State game-state: Adds up to n random closed doors to the current level.
    Returns number of random doors actually added."
   [n]
@@ -376,5 +376,32 @@
 ;; Test the above
 #_(do
   (def gs (assoc investigate.monads/test-game-state :level (create-empty-level-from-string level-map-string)))
-  (first ((ɣ•add-doors 200) gs))) ; -> 187
+  (first ((ɣ•add-doors' 200) gs))) ; -> 188
+
+(defn ɣ•add-door
+  "State game-state: Tries to add a random closed door to the current level.
+   Returns true if one is added, false otherwise."
+  []
+  (letfn [(good-door-loc? [lv coord]
+            ;; Is this coordinate a good place for a door?
+            (some (fn [pattern] (terrain-matches lv coord pattern)) door-locations))]
+    (dostate
+      [coord (ɣ•rand-location-p good-door-loc?)
+       _ (<- (println coord))
+       :if coord
+       :then [_ (ɣ•set-terrain coord :door-closed)]
+       ;; :else is always required
+       :else []]
+      (if coord true false))))
+
+(defn ɣ•add-doors
+  "State game-state: Adds up to n random closed doors to the current level.
+   Returns number of random doors actually added."
+  [n]
+  (µ•repeat-until n (ɣ•add-door)))
+
+;; Test the above
+#_(do
+  (def gs (assoc investigate.monads/test-game-state :level (create-empty-level-from-string level-map-string)))
+  (first ((ɣ•add-doors 200) gs)))
 

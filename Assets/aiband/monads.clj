@@ -112,3 +112,29 @@
    and the value passed in as the return value. Equivalent to a 'let'."
   [v]
   (fn [s] [v s]))
+
+
+(defn µ•repeat
+  "Returns a state-monad function that calls the specified state
+   monad function n times. Always returns true. Ignores return value
+   of µ•func."
+  [n µ•func]
+  (dostate
+    [_ (m/state-m-until
+         #(>= % n) ; p used in (p x)
+         (fn [x] (m/domonad [_ µ•func] (inc x))) ; f - call func and increment x
+         0)] ; x - start at 0 and count up to n
+    true))
+
+(defn µ•repeat-until
+  "Returns a state-monad function that calls the µ•func state
+   monad function n times, or until that state monad function returns a
+   falsy value. Returns number of iterations done."
+  [n µ•func]
+  (dostate
+    [final (m/state-m-until
+         #(or (>= (first %) n) (not (second %))) ; p used in (p x)
+         (fn [x] (m/domonad [retval µ•func] [(inc (first x)) retval])) ; f - call func and increment x
+         [0 true])] ; x - start at [0 true] and count up to n - true = last return value
+    (first final)))
+
