@@ -310,13 +310,13 @@
     (cond
       ;; Check all bounds
       (< (- x dx) 0)
-      :false1
+      false
       (< (- y dy) 0)
-      :false2
+      false
       (>= (+ x dx) l-w)
-      :false3
+      false
       (>= (+ y dy) l-h)
-      :false4
+      false
       ;; Check if we match...
       :else
       (let [terr-to-match (subvec2d (:terrain level) (- x dx) (- y dy) s-w s-h)]
@@ -335,10 +335,46 @@
   (some #(terrain-matches lv [19 5] %) door-locations) ; -> nil (like false)
   )
 
+; (defn ɣ•add-door
+;   "State game-state: Adds a door to the specified location if it's a"
+
+(defn ɣ•set-terrain
+  "State game-state: Sets the terrain of the specified location to the
+   specified type in the current level. Always returns true."
+  [[x y :as coord] terr]
+  (fn [s]
+    (let [terrain (:terrain (:level s))
+          upd-terrain (assoc2d terrain coord terr)
+          upd-state (assoc-in s [:level :terrain] upd-terrain)]
+      [true upd-state])))
+
 
 (defn ɣ•add-doors
-  "State game-state: Adds a bunch of random doors to the current level."
-  []
-  ;; XXX: CODE ME
-  nil)
+  "State game-state: Adds up to n random closed doors to the current level.
+   Returns number of random doors actually added."
+  [n]
+  (letfn [(good-door-loc? [lv coord]
+            (some (fn [pattern] (terrain-matches lv coord pattern)) door-locations))]
+    (dostate
+      [coord (ɣ•rand-location-p good-door-loc?)
+       ; _ (<- (println coord))
+       :cond [
+         ;; Couldn't find a place to put a door
+         (nil? coord)
+         [retval (<- 0)]
+         ;; Last door?
+         (<= n 1)
+         [_      (ɣ•set-terrain coord :door-closed) 
+          retval (<- 1)]
+         ;; More doors still to add
+         :else
+         [_       (ɣ•set-terrain coord :door-closed)
+          retval' (ɣ•add-doors (dec n))
+          retval  (<- (inc retval'))]]]
+       retval)))
+
+;; Test the above
+#_(do
+  (def gs (assoc investigate.monads/test-game-state :level (create-empty-level-from-string level-map-string)))
+  (first ((ɣ•add-doors 200) gs))) ; -> 187
 

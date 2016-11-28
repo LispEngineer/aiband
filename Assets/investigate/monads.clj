@@ -46,7 +46,8 @@
      :entities {}}
    :player {:x 2 :y 2 :hp 10 :hp-max 10}
    ;; TODO: Replace messages with a writer monad? 
-   :messages {:initial 0 :final 0 :text []}})
+   :messages {:initial 0 :final 0 :text []}
+   :rng 1})
 
 (defonce game-state
   (atom test-game-state))

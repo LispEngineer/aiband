@@ -192,3 +192,29 @@
 #_((dostate [a (aiband.level/ɣ•rand-location-t :rock) b (aiband.level/ɣ•rand-location-t :floor)] [a b])  aiband.game/test-game-state)
 
 
+(defn ɣ•rand-location-p
+  "State game-state: Returns a random coordinate in the current level 
+   that satisfies specified predicate. Predicate should be of the form
+   (predicate? level [x y]). Note that [x y] may not be within the
+   bounds of the level and will explicitly be [-1 -1] at least once.
+   Gives up after 10,000 tries and returns nil."
+  ;; TODO: rewrite ɣ•rand-location-t in terms of this function
+  [pred?]
+  (letfn 
+    [(until [[x y :as coord] tries s]
+      #_(println coord " " tries " " s)
+      (cond
+        ;; We found a suitable terrain
+        (pred? (:level s) coord)
+        [coord s]
+        ;; We ran out of tries
+        (> tries 10000)
+        [nil s]
+        ;; We have to keep trying
+        :else
+        (let [[next-coord next-s] 
+              ;; Calculate our next try and new state
+              ((» :rng µ•rand-coord (:width (:level s)) (:height (:level s))) s)]
+          ;; And do it again
+          (recur next-coord (inc tries) next-s))))]
+    (fn [s] (until [-1 -1] 0 s))))
