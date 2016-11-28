@@ -277,21 +277,6 @@
   (map equals-or-any [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 8]]) 
   (map equals-or-any [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 :any]]))
 
-(defn terrain-matches'
-  "Given two v2ds, returns true if every entry in a is the same as b,
-   or b is :any. This assumes both a and b are the exact same size."
-  [a b]
-  ;; Can't do it this way since and is a macro:
-  ;; (apply and (map equals-or-any a b)))
-  ;; See: https://clojuredocs.org/clojure.core/and
-  (every? identity (map equals-or-any a b)))
-
-;; Test the above
-#_(do
-  (terrain-matches' [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 9]])     
-  (terrain-matches' [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 8]]) 
-  (terrain-matches' [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 :any]]))
-
 (defn terrain-matches
   "Given a level, location, and terrain subset, check if the specified
    subset matches. The subset can include an :any which will match any
@@ -320,7 +305,10 @@
       ;; Check if we match...
       :else
       (let [terr-to-match (subvec2d (:terrain level) (- x dx) (- y dy) s-w s-h)]
-        (terrain-matches' terr-to-match subset)))))
+        ;; Can't do it this way since and is a macro:
+        ;; (apply and (map equals-or-any a b)))
+        ;; See: https://clojuredocs.org/clojure.core/and
+        (every? identity (map equals-or-any terr-to-match subset))))))
 
 ;; Test the above
 #_(do
@@ -347,36 +335,6 @@
           upd-terrain (assoc2d terrain coord terr)
           upd-state (assoc-in s [:level :terrain] upd-terrain)]
       [true upd-state])))
-
-
-(defn ɣ•add-doors'
-  "State game-state: Adds up to n random closed doors to the current level.
-   Returns number of random doors actually added."
-  [n]
-  (letfn [(good-door-loc? [lv coord]
-            (some (fn [pattern] (terrain-matches lv coord pattern)) door-locations))]
-    (dostate
-      [coord (ɣ•rand-location-p good-door-loc?)
-       ; _ (<- (println coord))
-       :cond [
-         ;; Couldn't find a place to put a door
-         (nil? coord)
-         [retval (<- 0)]
-         ;; Last door?
-         (<= n 1)
-         [_      (ɣ•set-terrain coord :door-closed) 
-          retval (<- 1)]
-         ;; More doors still to add
-         :else
-         [_       (ɣ•set-terrain coord :door-closed)
-          retval' (ɣ•add-doors (dec n))
-          retval  (<- (inc retval'))]]]
-       retval)))
-
-;; Test the above
-#_(do
-  (def gs (assoc investigate.monads/test-game-state :level (create-empty-level-from-string level-map-string)))
-  (first ((ɣ•add-doors' 200) gs))) ; -> 188
 
 (defn ɣ•add-door
   "State game-state: Tries to add a random closed door to the current level.
