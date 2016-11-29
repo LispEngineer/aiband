@@ -272,3 +272,81 @@ That is, refactor our argument and state-using and returning functions
 into functions of non-state arguments which return functions of the state, which in turn returns the
 function's value as well as the final state.
 
+## Preparatory Interlude
+
+For the next part, clone these two GitHub repos:
+
+* [clojure.algo.monads](https://github.com/clojure/algo.monads)
+* [clojure.tools.macro](https://github.com/clojure/tools.macro)
+
+Then, copy the subdirectories of `src/main/clojure` (which will include a new top-level `clojure` directory)
+to where your ClojureJVM JAR is, and invoke your REPL with something like 
+`rlwrap -r java -cp .:clojure-1.7.0.jar clojure.main`. Then, run
+`(use 'clojure.algo.monads)` at the REPL `user=>` prompt.
+
+## Continuing after Preparatory Interlude
+
+As indicated earlier, the `rand-int'` function is now usable as a "state monadic function,"
+(which is not by any means a canonical name, just my informal moniker for the purposes of
+this discussion)
+which state is the random seed. We also "wished" for a `let-with-state` that automatically
+propagated and handled propagating the state between multiple calls. Well... Our wish has
+been answered. We can now rewrite `three-rand` using these tools:
+
+```clojure
+(defn three-rand'
+  "'State monadic function' of no arguments which returns three random numbers (and, of course,
+   the final state)."
+  []
+  (domonad state-m
+    [r1 (rand-int' 10)
+     r2 (rand-int' 10)
+     r3 (rand-int' 10)]
+    [r1 r2 r3]))
+```
+
+In fact, examining the above code, we see the only difference between what was wished
+for and what was actually typed is that `let-with-state` became the mystical incantation
+`domonad state-m`. Nowhere do we see any obvious state variables. Let's see how this works
+in the (ClojureJVM, but ClojureCLR should work the same) REPL:
+
+```
+#'user/three-rand'
+user=> (three-rand')
+#object[clojure.algo.monads$fn__272$m_bind_state__277$fn__278 0x52045dbe "clojure.algo.monads$fn__272$m_bind_state__277$fn__278@52045dbe"]
+user=> ((three-rand') 3)
+[[9 9 4] 6474749221828612]
+user=> 
+```
+
+As we can see, `three-rand'` is a function of no arguments that returns a function,
+just as our `rand-int'` function did. Calling that function with the initial state
+produces the same output as the original `three-rand` function, including the
+new final state - but we never coded state management into `three-rand'` explictly!
+
+Moreover, since `three-rand'` is of the same form as `rand-int'` they can be composed
+using the same `domonad state-m` form:
+
+```clojure
+(defn ten-rand'
+  "'State monadic function' of no arguments which returns three random numbers (and, of course,
+   the final state)."
+  []
+  (domonad state-m
+    [t1 (three-rand')
+     r1 (rand-int' 10)
+     t2 (three-rand')
+     t3 (three-rand')]
+    (into [] (concat t1 [r1] t2 t3))))
+```
+
+Which results in the expected output:
+
+```
+#'user/ten-rand'
+user=> ((ten-rand') 3)
+[[9 9 4 2 1 2 3 5 7 3] 2993683514635247533]
+user=> 
+```
+
+# What Is `domonad state-m` Anyway?
