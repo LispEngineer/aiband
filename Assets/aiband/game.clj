@@ -104,6 +104,7 @@
   []
   ;; TODO: Create the random seed (or take it as a parameter) and then use that
   ;; to call all the other create functions.
+  ;; FIXME: Don't put the player where a door is.
   (let [level (create-level)
         player (p/create-player level)
         ;; Update what the player can see from the start

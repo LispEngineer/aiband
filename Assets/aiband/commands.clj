@@ -30,6 +30,22 @@
 
 ;; Game Commands -----------------------------------------------------------------
 
+(defn ɣ•open-door
+  "State game-state: Open the door at the specified location, which should be
+   adjacent to the player. (TODO: Check this?)"
+  [x y]
+  (dostate
+    [terr (fetch-in-val [:level :terrain y x])
+     :if (= terr :door-closed)
+     :then [_ (lv/ɣ•set-terrain [x y] :door-open)
+            _ (msg/ɣ•add "Door opened")
+            retval (<- true)]
+     ;; TODO: Convert to cond and check for already open door
+     :else [_ (msg/ɣ•add "Cannot open")
+            retval (<- false)]]
+    retval)) 
+
+
 (defn ɣ•move
   "State game-state monad: Moves the player object in this game by the specified delta.
    If not possible, adds a message to that effect and doesn't update the player.
@@ -53,12 +69,15 @@
        (or (< nx 0) (< ny 0) (>= nx w) (>= ny h))
        [_      (msg/ɣ•add (str "Invalid move: " nx "," ny))
         retval (<- false)]
+       ;; Walking into a closed door opens it (and put that in log) but doesn't move
+       (= terrain :door-closed)
+       [retval (ɣ•open-door nx ny)]
        ;; Moving into invalid terrain
        ;; TODO: Make a "terrain-walkable?" function
        (not (some #(= % terrain) [:floor :door-open]))
        [_      (msg/ɣ•add (str "Invalid terrain: " nx "," ny ": " terrain))
         retval (<- false)]
-       ;; TODO: Make walking into a closed door open it (and put that in log) but not move you.
+       ;; Otherwise, normal move
        :else
        [_      (set-in-val [:player :x] nx)
         _      (set-in-val [:player :y] ny)

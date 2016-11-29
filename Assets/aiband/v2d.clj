@@ -70,6 +70,24 @@
   (let [sub-y (subvec v2d y (+ y h))]
     (mapv #(subvec % x (+ x w)) sub-y)))
 
+(defn diff2d
+  "Compares two (presumably identically sized) 2d vectors and returns a
+   seq of coordinates that differ."
+  [v1 v2]
+  (let [h (count v1)
+        w (count (first v1))
+        coords (for [y (range h) x (range w)] [x y])]
+    (reduce 
+      (fn [ret coord]
+        (if (= (get2d v1 coord) (get2d v2 coord))
+          ret
+          (conj ret coord))) [] coords)))
+
+;; Test the above
+#_(do
+  (diff2d [[1 2 3][4 5 6][7 8 9]] [[1 2 3][4 5 6][7 8 9]])
+  (diff2d [[1 2 3][4 5 6][7 8 9]] [[1 0 3][4 5 6][7 8 0]]))
+
 
 ;;;; Neighbors ---------------------------------------------------------------
 

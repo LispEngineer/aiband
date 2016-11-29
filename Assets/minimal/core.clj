@@ -415,7 +415,16 @@
 
 
 ;; ------------------------------------------------------------------------
-        
+
+(def terrain-parent-name
+  "The name of the parent Unity Game Object that holds all terrain tiles."
+  "Terrain")
+
+(defn terrain-tile-name
+  "Gives the name of the Unity Game Object for the terrain tile at
+   the specified location"
+  [x y]        
+  (str "terrain-" x "," y))
 
 (defn terrain-tile
   "Converts a terrain symbol into a Prefab Tile name"
@@ -453,6 +462,49 @@
     (set! (. (. camera transform) position) (arcadia.linear/v3 x-pos ortho-size -10.0))) ; FIXME: Why Z -10?
   (arcadia.core/log "Main Camera setup complete"))
 
+(defn set-terrain-tile
+  "Sets up the terrain tile at the specified location with the specified
+   terrain type. First removes any existing terrain tile of that name/location.
+   Returns the new game object created."
+  ;; TODO: Check if the game object is the same terrain? Probably not worthwhile.
+  [x y t]
+  (let [tgo (object-named terrain-parent-name) ; Terrain parent game object
+        tt (. tgo transform) ; Terrain parent game object transform
+        goname (terrain-tile-name x y)
+        ogo (object-named goname) ; Old game object to destroy
+        ngo (instantiate-prefab (terrain-tile t) (arcadia.linear/v3 x y 0.0))]
+    ;; First get rid of any old object
+    (when (not (null-obj? ogo))
+      (destroy ogo))
+    ;; Set up our new object:
+    ;; Set our name
+    (set! (. ngo name) goname)
+    ;; We have all our floor items save the fact that the mouse is there.
+    ;; This hook requires a Collider else it will not get triggered.
+    ;; (We use a BoxCollider2d set to 90% of the lateral bounds of the tile.)
+    ;; Hence, all our terrain prefabs need to have this information.
+    (hook+ ngo :on-mouse-enter #'minimal.core/save-mouse-location)
+    ;; Put it in the Terrain holder
+    ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
+    (. (. ngo transform) SetParent tt)
+    ngo))
+
+(defn setup-all-terrain-tiles
+  "Sets up all terrain tiles for the level as it currently stands."
+  []
+  (let [terrain (:terrain (:level @g/game-state))
+        ; Create the Unity GameObject that will hold our other Terrain GOs    
+        tgo (GameObject. terrain-parent-name)]
+    #_(arcadia.core/log "Terrain" terrain)
+    ;; Iterate over the 2D vector including indices
+    (doseq [[y row] (map list (range) terrain)]
+      #_(arcadia.core/log "Starting terrain row" y)
+      (doseq [[x t] (map list (range) row)]
+        (set-terrain-tile x y t)
+          #_(arcadia.core/log "Created" x y t) ))
+      #_(arcadia.core/log "Finished terrain row" y) ))
+
+
 ;; Set up our game. Call this once when the game is run.
 ;; We assume it's set up as a listener for Awake message on a Startup object
 ;; in the scene which doesn't otherwise do anything.
@@ -462,31 +514,11 @@
   (arcadia.core/log "Game startup")
   (camera-setup)
   (game/initialize-game)
-  (let [terrain (:terrain (:level @g/game-state))
-        tgo (GameObject. "Terrain")  ; A Unity GameObject that will hold our other Terrain GOs
-        tt  (. tgo transform)] ; The transform of the above
-    #_(arcadia.core/log "Terrain" terrain)
-    #_(arcadia.core/log "Screen" Screen/width Screen/height)
-    ;; Iterate over the 2D vector including indices
-    (doseq [[y row] (map list (range) terrain)]
-      #_(arcadia.core/log "Starting terrain row" y)
-      (doseq [[x t] (map list (range) row)]
-        (let [go (instantiate-prefab (terrain-tile t) (arcadia.linear/v3 x y 0.0))]
-          ;; Set our name
-          (set! (. go name) (str "terrain-" x "," y))
-          ;; We have all our floor items save the fact that the mouse is there.
-          ;; This hook requires a Collider else it will not get triggered.
-          ;; Hence, all our terrain prefabs need to have this information.
-          (hook+ go :on-mouse-enter #'minimal.core/save-mouse-location)
-          ;; Put it in the Terrain holder
-          ;; https://unity3d.com/learn/tutorials/projects/2d-roguelike-tutorial/writing-board-manager?playlist=17150
-          (. (. go transform) SetParent tt)
-          #_(arcadia.core/log "Created" x y t go) ))
-      #_(arcadia.core/log "Finished terrain row" y) )
-    ;; Initialize our overlay game objects
-    (initialize-visibility-layer (:width (:level @g/game-state)) (:height (:level @g/game-state)))
-    (initialize-items)
-    )
+  (setup-all-terrain-tiles)
+  ;; Initialize our overlay game objects
+  (initialize-visibility-layer 
+    (:width (:level @g/game-state)) (:height (:level @g/game-state)))
+  (initialize-items)
   (arcadia.core/log "Game startup complete"))
 
 ;; Messages ---------------------------------------------------------------------
