@@ -112,21 +112,107 @@ not alter its state could be written as `(fn [s] [0 s])`. If it takes an
 extra parameter, it could be something like `(fn [x s] [(< x 2) s])`, which
 is indeed the signature of the `attack-monster` function above.
 
-To use a concrete example, let's write a simple (bad) PRNG in classic
+To use a concrete example, let's write a simple, pure PRNG in classic
 Clojure.
 
 ```clojure
-(defn next-int-between
-  "Returns a 
+(defn xorshift64*
+  "Implements the raw xorshift64* random algorithm. Takes the seed/state and returns the
+   next 'random' number and the new seed. Since Clojure doesn't have unsigned 64-bit
+   integers, but does have 64-bit signed integers, the seed and the result may be
+   negative. These numbers can be made positive (and equivalent to the C algorithm's
+   output) by converting to BigInt and adding 2^64. Input seed/state should may not be zero.
+   See: https://en.wikipedia.org/wiki/Xorshift"
+  [x]
+  (let [a (bit-xor x (unsigned-bit-shift-right x 12))
+        b (bit-xor a (bit-shift-left a 25))
+        c (bit-xor b (unsigned-bit-shift-right b 27))
+        ;; unchecked prevents math overflow
+        r (unchecked-multiply c 2685821657736338717)]
+    [r c]))
 ```
 
+This results in output like this:
 
+```
+#'user/xorshift64*
+user=> (xorshift64* 3)
+[-2905267188090366121 100663299]
+user=> (xorshift64* (second (xorshift64* 3)))
+[247403287327551319 3378524379445251]
+user=> 
+```
 
+We can convert this to a random number from 0 to a specified bound as follows:
 
+```clojure
+(defn rand-int
+  "Takes an (exclusive) bound and a random state/seed and returns a random number from
+   0 to that bound as well as the new random state/seed."
+  [n rand-state]
+  (let [[r new-state] (xorshift64* rand-state)]
+    [(mod r n) new-state]))
+```
 
+Again, this can be used simply:
 
+```
+#'user/rand-int
+user=> (rand-int 10 1)
+[5 33554433]
+user=> (rand-int 10 3)
+[9 100663299]
+user=> (rand-int 10 (second (rand-int 10 3)))
+[9 3378524379445251]
+user=> 
+```
 
+We can see that the random seeds change the same way, but the random number output is
+modified as per the `mod`.
 
+Now, if you wanted 10 random numbers, or N random numbers, things would get a bit
+more complicated as the system would have to track the random numbers and the seeds
+through each stage.
+
+```clojure
+(defn three-rand
+  "Gets three random numbers between 0 and 9 inclusive. Takes a seed, and returns
+   the random numbers as a vector and the seed (both encapsulated as a vector)."
+  [s]
+  (let [[r1 s] (rand-int 10 s)
+        [r2 s] (rand-int 10 s)
+        [r3 s] (rand-int 10 s)]
+    [[r1 r2 r3] s]))
+```
+
+And the output:
+
+```
+#'user/three-rand
+user=> (three-rand 3)
+[[9 9 4] 6474749221828612]
+```
+
+Now, imagine you had tons of state-modifying things going on, such as a game
+function that attacks a monster. It would get a random number to check if the
+attack hits. Then, a random number for damage. Then the state of the game would
+be updated, and a message added to the log. Then, of course, the AI would get to
+act and the monster could attack back, and more random numbers would need to be
+generated, and the state would keep being modified. Each part would need to
+keep the state updated and propagated properly, manage return values correctly
+separately from the state, and whatnot. Wouldn't it be easier if we could write
+code that looked like:
+
+```clojure
+  (dostate
+    [r1 (rand-int 10)
+     r2 (rand-int 10)
+     r3 (rand-int 10)]
+    [r1 r2 r3])
+```
+
+...and have the state management happen automatically and be propagated from one call
+to the next and returned from the function?
 
 
 
