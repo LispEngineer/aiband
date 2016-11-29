@@ -420,10 +420,12 @@
 (defn terrain-tile
   "Converts a terrain symbol into a Prefab Tile name"
   [t]
-  (cond
-    (= t :wall)  "TileWall"
-    (= t :floor) "TileFloor"
-    :else        "TileRock"))
+  (case t
+    :wall        "TileWall"
+    :floor       "TileFloor"
+    :door-open   "TileDoorOpen"
+    :door-closed "TileDoorClosed"
+    "TileRock"))
 
 (def gon-main-camera "Main camera object name" "Main Camera")
 (def tile-size "The (square) size of each dungeon tile" 24)

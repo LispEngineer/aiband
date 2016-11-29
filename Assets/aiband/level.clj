@@ -49,6 +49,8 @@
     :rock ""
     :floor "Floor"
     :wall "Wall"
+    :door-closed "Closed door"
+    :door-open "Open door"
     :else "Unknown"))
 
 
@@ -133,6 +135,8 @@
   (case ch
     \. :floor
     \# :wall
+    \+ :door-closed
+    \- :door-open
     :rock))
 
 (defn convert-level-from-string
@@ -189,8 +193,10 @@
   (case terr
     :floor true
     :wall false
+    :door-closed false
+    :door-open true
     :rock false ; Should never happen
-    :else false)) ; Should never happen?
+    false)) ; Should never happen?
 
 (defn visible-ray
   "Returns a set of all coordinates from the input seq (probably vector)

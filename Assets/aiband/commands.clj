@@ -54,9 +54,11 @@
        [_      (msg/ɣ•add (str "Invalid move: " nx "," ny))
         retval (<- false)]
        ;; Moving into invalid terrain
-       (not= terrain :floor)
+       ;; TODO: Make a "terrain-walkable?" function
+       (not (some #(= % terrain) [:floor :door-open]))
        [_      (msg/ɣ•add (str "Invalid terrain: " nx "," ny ": " terrain))
         retval (<- false)]
+       ;; TODO: Make walking into a closed door open it (and put that in log) but not move you.
        :else
        [_      (set-in-val [:player :x] nx)
         _      (set-in-val [:player :y] ny)

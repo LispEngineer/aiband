@@ -43,6 +43,39 @@ To install: (This assumes use of a Mac)
 
 * Run the game in Unity player or export the game and run stand-alone
 
+## Debugging
+
+Use [Nostrand](https://github.com/nasser/nostrand) to debug the pure Clojure
+parts of the game, as such:
+
+```
+AdmiralA:~/src/unity/arcadia-2/Assets$ ~/src/clojure/nostrand-new/bin/Release/nos repl
+Nostrand 0.0.1.37679 (master/7fbd60b Mon Nov 28 20:55:59 EST 2016)
+Mono 4.6.1 (mono-4.6.0-branch-c8sr0/ef43c15 Mon Oct  3 14:46:20 EDT 2016)
+Clojure 1.7.0-master-SNAPSHOT
+REPL 0.0.0.0:11217
+user> (require ['investigate.monads :reload true])
+nil
+user> (require ['aiband.level :reload true])
+nil
+user> (in-ns 'aiband.level)
+#<Namespace aiband.level>
+aiband.level> (def gs (assoc investigate.monads/test-game-state :level (create-empty-level-from-string level-map-string))) 
+#'aiband.level/gs
+aiband.level> (first ((ɣ•add-doors 3) (assoc gs :rng 2)))
+[98 39]
+[67 36]
+[93 39]
+3
+aiband.level>
+```
+
+In Unity, use the usual Arcadia REPL and whatever text editor you want. 
+I have been using
+[Joseph Parker's Sublime Text 3 Clojure settings and Arcadia REPL](https://github.com/selfsame/arcadia-repl). Note that there is one minor bug in the
+syntax coloring for that, relating to #_(form) syntax - include whitespace
+after the matching closing paren else coloring is wrong.
+
 
 # Next Steps
 

@@ -114,6 +114,9 @@
            :messages (msg/create)
            :rng (rnd/make-seed (time-ms))}]
     ;; Now, switch to monadic language and add doors.
+    ;; FIXME: Add items after we add doors, so we never have items on
+    ;; doors by default. (How do we handle if a user drops an item onto
+    ;; an open door and then closes it?)
     (second ((lv/ɣ•add-doors) initial-gs))))
 
 ;; Game State and Initialization ---------------------------------------------
