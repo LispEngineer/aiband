@@ -239,5 +239,35 @@ Since Clojure is a [Lisp-1](https://en.wikipedia.org/wiki/Common_Lisp#The_functi
 can easily call this new function similarly to the one above:
 
 ```
+#'user/rand-int'
+user=> (rand-int' 10)
+;; NOTE: This output was generated using ClojureJVM instead of ClojureCLR
+#object[user$rand_int_SINGLEQUOTE_$fn__32 0x7905a0b8 "user$rand_int_SINGLEQUOTE_$fn__32@7905a0b8"]
+user=> ((rand-int' 10) 3)
+[9 100663299]
+user=> ((rand-int' 10) (second ((rand-int' 10) 3)))
+[9 3378524379445251]
+user=> (def rand10 (rand-int' 10))
+#'user/rand10
+user=> (rand10 3)
+[9 100663299]
+user=> (rand10 (second (rand10 3)))
+[9 3378524379445251]
+user=> 
+```
 
+So, the first thing necessary to use the "state monad" is to mentally refactor all our
+state-using functions into curried functions of the form of `rand-int'` above, which
+in general looks like this:
+
+```clojure
+(defn state-monad-function
+  [whatever non-state arguments]
+  (fn [initial-state]
+    ...
+    [retval final-state]))
+```
+
+That is, functions which return functions of the state, which in turn returns the
+function's value as well as the final state.
 
