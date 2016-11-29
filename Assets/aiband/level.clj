@@ -31,6 +31,14 @@
   "Maximum number of random items per level"
   250) ;50)
 
+(def min-doors
+  "Minimum number of doors per level"
+  5)
+
+(def max-doors
+  "Maximum number of doors per level"
+  35)
+
 
 ;; Tiles ----------------------------------------------------------------------
 
@@ -353,13 +361,26 @@
       (if coord true false))))
 
 (defn ɣ•add-doors
-  "State game-state: Adds up to n random closed doors to the current level.
+  "State game-state: Adds up to n random closed doors to the current level,
+   or an appropriate random number of doors if no n is provided.
    Returns number of random doors actually added."
-  [n]
-  (µ•repeat-until n (ɣ•add-door)))
+  ([n]
+   (µ•repeat-until n (ɣ•add-door)))
+  ([]
+    (let [rand-range (- max-doors min-doors -1)]
+      (dostate
+        [r      (» :rng µ•rand-int rand-range)
+         retval (ɣ•add-doors (+ r min-doors))]
+        retval))))
 
 ;; Test the above
 #_(do
   (def gs (assoc investigate.monads/test-game-state :level (create-empty-level-from-string level-map-string)))
   (first ((ɣ•add-doors 200) gs)))
+#_(do
+  (require ['investigate.monads :reload true])
+  (require ['aiband.level :reload true])
+  (in-ns 'aiband.level)
+  (def gs (assoc investigate.monads/test-game-state :level (create-empty-level-from-string level-map-string))) 
+  (first ((ɣ•add-doors) (assoc gs :rng 1))))
 

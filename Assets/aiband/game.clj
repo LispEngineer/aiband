@@ -97,6 +97,8 @@
   @aiband.globals/game-state)
 
 
+;; TODO: Create game in a fully monadic way from an empty shell with a
+;; random seed.
 (defn create
   "Creates a new game object with a player and a random level with random items."
   []
@@ -105,11 +107,14 @@
   (let [level (create-level)
         player (p/create-player level)
         ;; Update what the player can see from the start
-        level-vis (lv/update-level-visibility level [(:x player) (:y player)] see-dist)]
-    {:level level-vis
-     :player player
-     :messages (msg/create)
-     :rng (rnd/make-seed (time-ms))}))
+        level-vis (lv/update-level-visibility level [(:x player) (:y player)] see-dist)
+        initial-gs 
+          {:level level-vis
+           :player player
+           :messages (msg/create)
+           :rng (rnd/make-seed (time-ms))}]
+    ;; Now, switch to monadic language and add doors.
+    (second ((lv/ɣ•add-doors) initial-gs))))
 
 ;; Game State and Initialization ---------------------------------------------
 
@@ -119,5 +124,3 @@
    reload this file in REPL without modifying the game state."
   []
   (reset! game-state (create)))
-
-
