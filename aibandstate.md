@@ -92,17 +92,6 @@ to somewhat convoluted logic.
 
 # Enter the State Monad
 
-(This discussion references the State Monad as used in 
-[clojure.algo.monads](https://github.com/clojure/algo.monads). There is a seemingly
-better implementation of monads in [bwo.monads](https://github.com/bwo/monads),
-but due to its heavy set of dependencies, I chose to use the former library
-as it was very easy to port to ClojureCLR, which is what Aiband uses.)
-
-Oh no, "monad." This term scares many software engineers who just want to get things
-done without learning about monad laws, category theory, etc. So, I'm not going
-to talk to them, but rather to talk about how to use it in Clojure to make the
-above sort of code more easily read.
-
 We've seen that it's useful to have pure functions that take state (and other
 arguments) and return a result and the new state. In Haskell, it this sort
 of function could be written (in the case of no arguments) as being of type
@@ -204,7 +193,7 @@ separately from the state, and whatnot. Wouldn't it be easier if we could write
 code that looked like:
 
 ```clojure
-  (dostate
+  (let-with-state
     [r1 (rand-int 10)
      r2 (rand-int 10)
      r3 (rand-int 10)]
@@ -214,8 +203,41 @@ code that looked like:
 ...and have the state management happen automatically and be propagated from one call
 to the next and returned from the function?
 
+# Enter the State Monad
 
+(This discussion references the State Monad as used in 
+[clojure.algo.monads](https://github.com/clojure/algo.monads). There is a seemingly
+better implementation of monads in [bwo.monads](https://github.com/bwo/monads),
+but due to its heavy set of dependencies, I chose to use the former library
+as it was very easy to port to ClojureCLR, which is what Aiband uses.)
 
+Oh no, "monad." This term scares many software engineers who just want to get things
+done without learning about monad laws, category theory, etc. So, I'm not going
+to talk to them, but rather to talk about how to use it in Clojure to make the
+above sort of code more easily read.
 
+We now have a function, `(rand-int <n> <rand-state>)`. Through a technique called
+[currying](https://en.wikipedia.org/wiki/Currying), we can turn this one function of
+two arguments into a function of one argument that returns a function that takes
+a second argument, which together accomplishes the same exact thing. Let's
+try this by making a function that takes `<n>` as the argument and returns a function
+that takes `<rand-state>` as an argument, which itself then returns the random number
+up to `<n>` and the new `<rand-state>`.
+
+```clojure
+(defn rand-int'
+  "Takes an (exclusive) bound and returns a function that takes
+   a random state/seed which returns a random number from
+   0 to that bound as well as the new random state/seed."
+  [n]
+  (fn [rand-state]
+    (let [[r new-state] (xorshift64* rand-state)]
+      [(mod r n) new-state])))
+```
+
+Since Clojure is a [Lisp-1](https://en.wikipedia.org/wiki/Common_Lisp#The_function_namespace), we
+can easily call this new function similarly to the one above:
+
+```
 
 
