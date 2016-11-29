@@ -241,7 +241,7 @@ can easily call this new function similarly to the one above:
 ```
 #'user/rand-int'
 user=> (rand-int' 10)
-;; NOTE: This output was generated using ClojureJVM instead of ClojureCLR
+;; NOTE: This output was generated using ClojureJVM 1.7.0 instead of ClojureCLR
 #object[user$rand_int_SINGLEQUOTE_$fn__32 0x7905a0b8 "user$rand_int_SINGLEQUOTE_$fn__32@7905a0b8"]
 user=> ((rand-int' 10) 3)
 [9 100663299]
@@ -268,6 +268,7 @@ in general looks like this:
     [retval final-state]))
 ```
 
-That is, functions which return functions of the state, which in turn returns the
+That is, refactor our argument and state-using and returning functions
+into functions of non-state arguments which return functions of the state, which in turn returns the
 function's value as well as the final state.
 
