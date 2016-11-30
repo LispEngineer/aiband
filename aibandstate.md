@@ -90,7 +90,7 @@ which would probably be what would be done in practice.)
 As can be seen, the need to maintain the return value and state separately can lead
 to somewhat convoluted logic.
 
-# Enter the State Monad
+# Concrete State Passing
 
 We've seen that it's useful to have pure functions that take state (and other
 arguments) and return a result and the new state. In Haskell, it this sort
