@@ -284,6 +284,12 @@ to where your ClojureJVM JAR is, and invoke your REPL with something like
 `rlwrap -r java -cp .:clojure-1.7.0.jar clojure.main`. Then, run
 `(use 'clojure.algo.monads)` at the REPL `user=>` prompt.
 
+Please note that I'm using ClojureJVM because it can use the libraries above
+directly without modfication. If you wish to use ClojureCLR, you can do the
+same thing if you use my ClojureCLR ported versions in the Aiband GitHub repository
+along with [Nostrand](https://github.com/nasser/nostrand) to get a ClojureCLR REPL.
+Also, [rlwrap](https://github.com/hanslub42/rlwrap) makes REPLs better. 
+
 ## Continuing after Preparatory Interlude
 
 As indicated earlier, the `rand-int'` function is now usable as a "state monadic function,"
@@ -329,7 +335,7 @@ using the same `domonad state-m` form:
 
 ```clojure
 (defn ten-rand'
-  "'State monadic function' of no arguments which returns three random numbers (and, of course,
+  "'State monadic function' of no arguments which returns ten random numbers (and, of course,
    the final state)."
   []
   (domonad state-m
@@ -349,4 +355,68 @@ user=> ((ten-rand') 3)
 user=> 
 ```
 
-# What Is `domonad state-m` Anyway?
+# First Explanation of `domonad state-m`
+
+At initial glance, `domonad state-m` really does seem to be a version of
+`let` that also threads and returns state. The first argument, a vector,
+takes pairs of the form `<binding> <function-of-state>`. As we have
+seen, the `<function-of-state>` is simply a function that takes a
+single parameter, the current state, and returns a vector of two items,
+the return value and the new state.
+
+In the example above, the `<function-of-state>` was obtained by
+evaluating the form `(rand-int' 10)`, which returns a function of the
+expected form. It's not necessary for this form to be a function call;
+direct use of an appropriate function also works:
+
+```
+user=> ((domonad state-m [x #(vector % %)] x) 3)
+[3 3]
+user=> (def state-inc-func #(vector (inc %) %))
+#'user/state-inc-func
+user=> ((domonad state-m [x state-inc-func] x) 3)
+[4 3]
+```
+
+Indeed, for "state monadic functions" of no arguments, they can be
+written without that intermediate step and used directly, just as in
+the second example above:
+
+```clojure
+(def ten-rand''
+  "A bare state-only function which returns ten random numbers (and, of course,
+   the final state)."
+  (domonad state-m
+    [t1 (three-rand')
+     r1 (rand-int' 10)
+     t2 (three-rand')
+     t3 (three-rand')]
+    (into [] (concat t1 [r1] t2 t3))))
+```
+
+Results in the expected output:
+
+```
+#'user/ten-rand''
+user=> ((domonad state-m [x ten-rand''] x) 3)
+[[9 9 4 2 1 2 3 5 7 3] 2993683514635247533]
+user=>
+```
+
+So, the `domonad state-m` vector consists of the bindings
+and the state functions to call to get the return value and
+updated state. There can be an unlimited number of these.
+Then, the final form after the vector is evaluated and that
+is used as the final return value of the `domonad state-m`,
+along with the final state from the evaluation of the vector.
+All the bindings made in the vector are available to use in
+the final form, as was seen with `t1 [r1] t2 t3`. The final
+form to be evaluated, however, is a regular Clojure form rather
+than the special "function of state returning vector of return
+value and new state" used in the vector of the `domonad state-m`.
+
+The `domonad` actually allows for additional entries in the
+vector beyond `<binding> <function-of-state>` which are a
+`:let`, `:cond` and `:if`/`:then`/`:else` (and also a
+`:when` which is not particularly useful for the
+state monad).
