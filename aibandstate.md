@@ -418,5 +418,76 @@ value and new state" used in the vector of the `domonad state-m`.
 The `domonad` actually allows for additional entries in the
 vector beyond `<binding> <function-of-state>` which are a
 `:let`, `:cond` and `:if`/`:then`/`:else` (and also a
-`:when` which is not particularly useful for the
+`:when` which is not useful for the
 state monad).
+
+## `:let`
+
+`:let` simply allows for bindings to be made with ordinary
+Clojure forms. For example:
+
+```clojure
+(def test-let
+  "Demonstrate the :let clause in domonad with random numbers."
+  (domonad state-m
+    [r1 (rand-int' 10)
+     r2 (rand-int' 10)
+     :let [rsum  (+ r1 r2)
+           rdiff (- r1 r2)]
+     r3 (rand-int' (inc rsum))]
+    [r1 r2 rsum rdiff r3]))
+```
+
+Which has (what I hope is) the expected output:
+
+```
+#'user/test-let
+user=> (test-let 3)
+[[9 9 18 0 17] 6474749221828612]
+user=> (test-let 4)
+[[1 9 10 -8 9] 13512173405898766]
+user=> ((domonad state-m [x test-let] x) 3)
+[[9 9 18 0 17] 6474749221828612]
+user=> 
+```
+
+I personally found the `:let` construct to be a little inelegant, so I wrote
+a very simple "state monadic function" that simply returns its argument 
+and unchanged state, or a function of its remaining arguments and again
+unchanged state:
+
+```clojure
+(defn <-
+  "Returns a state-monad function that returns the state unchanged
+   and the value passed in as the return value. Equivalent to a 'let'.
+   If multiple values are passed in, it is assumed that we should apply
+   the second and subsequent values to the first which is a function."
+  [v & rest]
+    (if (nil? rest)
+      (fn [s] [v s])
+      (fn [s] [(apply v rest) s])))
+
+(def test-<-
+  "Demonstrate the <- in lieu of a :let clause in domonad with random numbers."
+  (domonad state-m
+    [r1 (rand-int' 10)
+     r2 (rand-int' 10)
+     rsum  (<- (+ r1 r2))
+     rsum' (<- + r1 r2)
+     rdiff (<- - r1 r2)
+     r3 (rand-int' (inc rsum))]
+    [r1 r2 rsum rsum' rdiff r3]))
+```
+
+```
+user=> (test-<- 3)
+[[9 9 18 18 0 17] 6474749221828612]
+user=> (test-<- 4)
+[[1 9 10 10 -8 9] 13512173405898766]
+```
+
+## Note on `domonad`
+
+I personally find the syntax of `clojure.algo.monads`'s `domonad` clause to be
+pretty ugly. I prefer the syntax of [BWO's `mdo`](https://github.com/bwo/monads),
+but porting that library to ClojureCLR was beyond my intention for the time being.
