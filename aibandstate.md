@@ -486,6 +486,29 @@ user=> (test-<- 4)
 [[1 9 10 10 -8 9] 13512173405898766]
 ```
 
+One last detail: There is already a pre-defined function that works this way.
+It's a core part of the monad definition and is called `m-result`. This works
+exactly as the single-argument version of `<-`.
+
+```clojure
+(def test-m-result
+  "Demonstrate the m-result in lieu of a :let clause in domonad with random numbers."
+  (domonad state-m
+    [r1 (rand-int' 10)
+     r2 (rand-int' 10)
+     rsum  (m-result (+ r1 r2))
+     rdiff (m-result (- r1 r2))
+     r3 (rand-int' (inc rsum))]
+    [r1 r2 rsum rdiff r3]))
+```
+
+```
+#'user/test-m-result
+user=> (test-m-result 3)
+[[9 9 18 0 17] 6474749221828612]
+user=> 
+```
+
 ## Note on `domonad`
 
 I personally find the syntax of `clojure.algo.monads`'s `domonad` clause to be
