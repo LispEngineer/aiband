@@ -509,6 +509,22 @@ user=> (test-m-result 3)
 user=> 
 ```
 
+## `:if`
+
+TODO
+
+## `:cond`
+
+TODO
+
+# Complex State
+
+TODO: Using state containing more state and multiple types of "state monadic" functions of different state together. Hoisting.
+
+# Other Topics
+
+TODO: Lifting. ...?
+
 ## Note on `domonad`
 
 I personally find the syntax of `clojure.algo.monads`'s `domonad` clause to be
